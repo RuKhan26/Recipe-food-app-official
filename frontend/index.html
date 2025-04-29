@@ -10,6 +10,7 @@
   <div class="container">
     <h1>Recipe Food App</h1>
 
+    <!-- Login/Register Section -->
     <section id="login">
       <h2>Login / Register</h2>
       <input type="text" id="username" placeholder="Username">
@@ -18,6 +19,7 @@
       <button onclick="login()">Login</button>
     </section>
 
+    <!-- Recipe Search Section -->
     <section id="search">
       <h2>Find Recipes by Ingredients</h2>
       <input type="text" id="ingredients" placeholder="e.g., tomato, pasta">
@@ -25,33 +27,21 @@
       <ul id="recipeList"></ul>
     </section>
 
+    <!-- Surprise Recipe Section -->
     <section id="random">
       <h2>Surprise Me!</h2>
       <button onclick="randomRecipe()">Give Me a Random Recipe</button>
       <div id="randomRecipeDisplay"></div>
     </section>
 
+    <!-- Favorites Section -->
     <section id="favorites">
       <h2>My Favorite Recipes</h2>
       <ul id="favoriteList"></ul>
     </section>
 
+    <!-- Journal Section -->
     <section id="journal">
       <h2>My Recipe Journal</h2>
       <input type="text" id="journalTitle" placeholder="Recipe Title">
-      <textarea id="journalContent" placeholder="Write your recipe..."></textarea>
-      <button onclick="saveJournal()">Save</button>
-      <ul id="journalEntries"></ul>
-    </section>
-
-    <section id="ai">
-      <h2>AI Assistant</h2>
-      <input type="text" id="aiPrompt" placeholder="What do you feel like eating?">
-      <button onclick="askAI()">Ask AI</button>
-      <p id="aiResponse"></p>
-    </section>
-  </div>
-
-  <script src="script.js"></script>
-</body>
-</html>
+      <textarea id="journalContent" placeholder="Write your recipe...

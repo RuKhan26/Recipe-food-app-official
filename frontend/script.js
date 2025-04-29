@@ -1,120 +1,130 @@
-// Function to handle fetching recipes based on ingredients
-async function getRecipes(ingredients) {
-    const url = `http://localhost:8000/backend/api/recipes.php?ingredients=${encodeURIComponent(ingredients)}`;
-  
-    try {
-      // Fetch the recipes from the backend API
-      const response = await fetch(url);
-      
-      // Check if the response is ok (status 200)
-      if (!response.ok) {
-        throw new Error('Failed to fetch recipes');
-      }
-  
-      // Parse the response as JSON
-      const data = await response.json();
-  
-      // Process and display the recipes
-      displayRecipes(data);
-    } catch (error) {
-      console.error('Error fetching recipes:', error);
-    }
-  }
-  
-  // Function to get a surprise recipe
-  async function getSurpriseRecipe() {
-    const url = 'http://localhost:8000/backend/api/recipes.php?surprise=true';
-  
-    try {
-      const response = await fetch(url);
-  
-      if (!response.ok) {
-        throw new Error('Failed to fetch surprise recipe');
-      }
-  
-      const data = await response.json();
-  
-      // Process and display the surprise recipe
-      displayRecipes(data);
-    } catch (error) {
-      console.error('Error fetching surprise recipe:', error);
-    }
-  }
-  
-  // Function to display the list of recipes
-  function displayRecipes(recipes) {
-    const recipesContainer = document.getElementById('recipes-container');
-    recipesContainer.innerHTML = ''; // Clear any previous recipes
-  
-    // Loop through the recipes and display them
-    recipes.forEach(recipe => {
-      const recipeElement = document.createElement('div');
-      recipeElement.classList.add('recipe');
-  
-      recipeElement.innerHTML = `
-        <h3>${recipe.name}</h3>
-        <p>${recipe.description}</p>
-        <p><strong>Ingredients:</strong> ${recipe.ingredients.join(', ')}</p>
-        <button class="save-button" data-recipe-id="${recipe.id}">Save Recipe</button>
-      `;
-  
-      // Append the recipe element to the container
-      recipesContainer.appendChild(recipeElement);
-    });
-  }
-  
-  // Function to save a recipe to favorites
-  async function saveRecipeToFavorites(recipeId) {
-    const url = 'http://localhost:8000/backend/api/favorites.php';
-    
-    const data = {
-      recipe_id: recipeId
-    };
-  
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
+// === Register User ===
+function register() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  fetch('http://localhost:8000/backend/api/users.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'register', username, password })
+  })
+  .then(res => res.json())
+  .then(data => alert(data.message || 'User registered!'));
+}
+
+// === Login User ===
+function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  fetch('http://localhost:8000/backend/api/users.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'login', username, password })
+  })
+  .then(res => res.json())
+  .then(data => alert(data.message || 'Logged in!'));
+}
+
+// === Search Recipes ===
+function searchRecipes() {
+  const ingredients = document.getElementById('ingredients').value.trim();
+  if (!ingredients) return;
+
+  fetch('http://localhost:8000/backend/api/recipes.php?ingredients=' + encodeURIComponent(ingredients))
+      .then(res => res.json())
+      .then(data => {
+          const list = document.getElementById('recipeList');
+          list.innerHTML = '';
+          data.forEach(recipe => {
+              const li = document.createElement('li');
+              li.innerHTML = `
+                  <strong>${recipe.name}</strong><br>
+                  Ingredients: ${recipe.ingredients}<br>
+                  Instructions: ${recipe.instructions}<br>
+                  <button onclick="saveRecipeToFavorites(${recipe.id})">Save to Favorites</button>
+              `;
+              list.appendChild(li);
+          });
       });
-  
-      if (!response.ok) {
-        throw new Error('Failed to save recipe');
-      }
-  
-      const result = await response.json();
-      console.log('Recipe saved to favorites:', result);
-    } catch (error) {
-      console.error('Error saving recipe:', error);
-    }
+}
+
+// === Surprise Recipe ===
+function randomRecipe() {
+  fetch('http://localhost:8000/backend/api/recipes.php')
+      .then(res => res.json())
+      .then(data => {
+          const recipe = data[Math.floor(Math.random() * data.length)];
+          const display = document.getElementById('randomRecipeDisplay');
+          display.innerHTML = `
+              <strong>${recipe.name}</strong><br>
+              Ingredients: ${recipe.ingredients}<br>
+              Instructions: ${recipe.instructions}<br>
+          `;
+      });
+}
+
+// Function to handle AI Assistant query
+async function askAI() {
+  const prompt = document.getElementById('aiPrompt').value.trim();
+
+  if (!prompt) {
+    alert('Please enter a prompt!');
+    return;
   }
-  
-  // Event listener to handle "Search Recipes" form submission
-  document.getElementById('ingredients-form').addEventListener('submit', function(event) {
-    event.preventDefault();
-    
-    const ingredientsInput = document.getElementById('ingredients');
-    const ingredients = ingredientsInput.value.trim();
-    
-    if (ingredients) {
-      getRecipes(ingredients);
-    } else {
-      alert('Please enter some ingredients');
-    }
+
+  try {
+    const response = await fetch('http://localhost:8000/backend/api/ai_assistant.php?prompt=' + encodeURIComponent(prompt));
+    const data = await response.json();
+
+    // Display the AI response
+    document.getElementById('aiResponse').innerText = data.ai_response;
+  } catch (error) {
+    console.error('Error fetching AI response:', error);
+  }
+}
+
+
+// === Save to Favorites ===
+function saveRecipeToFavorites(recipeId) {
+  fetch('http://localhost:8000/backend/api/favorites.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipe_id: recipeId })
+  })
+  .then(res => res.json())
+  .then(data => alert(data.message || 'Saved to favorites!'));
+}
+
+// === Save Journal ===
+function saveJournal() {
+  const title = document.getElementById('journalTitle').value.trim();
+  const content = document.getElementById('journalContent').value.trim();
+
+  fetch('http://localhost:8000/backend/api/journal.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content })
+  })
+  .then(res => res.json())
+  .then(data => {
+      const entry = document.createElement('li');
+      entry.innerHTML = `<strong>${title}</strong>: ${content}`;
+      document.getElementById('journalEntries').appendChild(entry);
   });
-  
-  // Event listener for the "Surprise Recipe" button
-  document.getElementById('surprise-button').addEventListener('click', function() {
-    getSurpriseRecipe();
+}
+
+// === Ask AI Assistant ===
+function askAI() {
+  const prompt = document.getElementById('aiPrompt').value.trim();
+
+  fetch('http://localhost:8000/backend/api/ai_assistant.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+  })
+  .then(res => res.json())
+  .then(data => {
+      document.getElementById('aiResponse').innerText = data.response || 'No response from AI';
   });
-  
-  // Event delegation to handle "Save Recipe" button clicks
-  document.getElementById('recipes-container').addEventListener('click', function(event) {
-    if (event.target.classList.contains('save-button')) {
-      const recipeId = event.target.getAttribute('data-recipe-id');
-      saveRecipeToFavorites(recipeId);
-    }
-  });
-  
+}
