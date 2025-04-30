@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< Updated upstream
-    <title>Meal Plans - Recipe App</title>
-    <link rel="stylesheet" href="styles.css">
-=======
-    <title>Meal Plans - Recipe Food App</title>
+    <title>Meal Plans - Bite Board</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         .meal-plan-container {
@@ -48,45 +44,48 @@
             color: #666;
         }
 
-        .meal-slot p {
-            margin: 0;
-            font-size: 0.9em;
+        .meal-slot .meal-content {
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 5px 0;
+            position: relative;
         }
 
-        .meal-slot .actions {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
-        }
-
-        .meal-slot button {
-            padding: 3px 8px;
-            font-size: 0.8em;
-            background: #4CAF50;
+        .meal-slot .meal-content .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #f44336;
             color: white;
             border: none;
-            border-radius: 3px;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
             cursor: pointer;
+            display: none;
         }
 
-        .meal-slot button.delete {
-            background: #f44336;
+        .meal-slot .meal-content:hover .delete-btn {
+            display: block;
         }
 
         .add-meal-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
             background: #fff;
             padding: 20px;
             border-radius: 8px;
-            margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .add-meal-form select,
-        .add-meal-form input {
+        .add-meal-form select {
             padding: 8px;
-            margin: 5px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            flex: 1;
         }
 
         .add-meal-form button {
@@ -97,17 +96,38 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
+        .add-meal-form button:hover {
+            background: #45a049;
+        }
+
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
     </style>
->>>>>>> Stashed changes
 </head>
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar">
-<<<<<<< Updated upstream
         <a href="index.html" class="nav-brand">Bite Board</a>
-=======
-        <div class="nav-brand">Recipe Food App</div>
->>>>>>> Stashed changes
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
         <div class="nav-links">
             <a href="index.html">Home</a>
             <a href="favorites.html">My Favorites</a>
@@ -116,7 +136,6 @@
         </div>
     </nav>
 
-<<<<<<< Updated upstream
     <div id="loginStatus" class="login-status">
         <span id="userDisplay"></span>
         <button type="button" onclick="logout()" class="logout-button">Logout</button>
@@ -149,85 +168,134 @@
                 <button onclick="addMealToPlan()">Add to Plan</button>
             </div>
             <div id="message" class="message" style="display: none;"></div>
-            <div id="mealPlanContainer" class="meal-plan-grid">
-                <!-- Meal slots will be populated here -->
-=======
-    <div class="meal-plan-container">
-        <h1>Meal Plans</h1>
-        
-        <div class="add-meal-form">
-            <h2>Add Meal to Plan</h2>
-            <select id="recipeSelect">
-                <option value="">Select a recipe...</option>
-            </select>
-            <select id="daySelect">
-                <option value="Monday">Monday</option>
-                <option value="Tuesday">Tuesday</option>
-                <option value="Wednesday">Wednesday</option>
-                <option value="Thursday">Thursday</option>
-                <option value="Friday">Friday</option>
-                <option value="Saturday">Saturday</option>
-                <option value="Sunday">Sunday</option>
-            </select>
-            <select id="mealTypeSelect">
-                <option value="Breakfast">Breakfast</option>
-                <option value="Lunch">Lunch</option>
-                <option value="Dinner">Dinner</option>
-            </select>
-            <button onclick="addMealToPlan()">Add to Plan</button>
-        </div>
-
-        <div class="meal-plan-grid">
-            <div class="day-column" id="Monday">
-                <h3>Monday</h3>
-            </div>
-            <div class="day-column" id="Tuesday">
-                <h3>Tuesday</h3>
-            </div>
-            <div class="day-column" id="Wednesday">
-                <h3>Wednesday</h3>
-            </div>
-            <div class="day-column" id="Thursday">
-                <h3>Thursday</h3>
-            </div>
-            <div class="day-column" id="Friday">
-                <h3>Friday</h3>
-            </div>
-            <div class="day-column" id="Saturday">
-                <h3>Saturday</h3>
-            </div>
-            <div class="day-column" id="Sunday">
-                <h3>Sunday</h3>
->>>>>>> Stashed changes
+            <div class="meal-plan-grid">
+                <div class="day-column" id="Monday">
+                    <h3>Monday</h3>
+                    <div class="meal-slot" data-meal="Breakfast">
+                        <h4>Breakfast</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Lunch">
+                        <h4>Lunch</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Dinner">
+                        <h4>Dinner</h4>
+                    </div>
+                </div>
+                <div class="day-column" id="Tuesday">
+                    <h3>Tuesday</h3>
+                    <div class="meal-slot" data-meal="Breakfast">
+                        <h4>Breakfast</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Lunch">
+                        <h4>Lunch</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Dinner">
+                        <h4>Dinner</h4>
+                    </div>
+                </div>
+                <div class="day-column" id="Wednesday">
+                    <h3>Wednesday</h3>
+                    <div class="meal-slot" data-meal="Breakfast">
+                        <h4>Breakfast</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Lunch">
+                        <h4>Lunch</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Dinner">
+                        <h4>Dinner</h4>
+                    </div>
+                </div>
+                <div class="day-column" id="Thursday">
+                    <h3>Thursday</h3>
+                    <div class="meal-slot" data-meal="Breakfast">
+                        <h4>Breakfast</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Lunch">
+                        <h4>Lunch</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Dinner">
+                        <h4>Dinner</h4>
+                    </div>
+                </div>
+                <div class="day-column" id="Friday">
+                    <h3>Friday</h3>
+                    <div class="meal-slot" data-meal="Breakfast">
+                        <h4>Breakfast</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Lunch">
+                        <h4>Lunch</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Dinner">
+                        <h4>Dinner</h4>
+                    </div>
+                </div>
+                <div class="day-column" id="Saturday">
+                    <h3>Saturday</h3>
+                    <div class="meal-slot" data-meal="Breakfast">
+                        <h4>Breakfast</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Lunch">
+                        <h4>Lunch</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Dinner">
+                        <h4>Dinner</h4>
+                    </div>
+                </div>
+                <div class="day-column" id="Sunday">
+                    <h3>Sunday</h3>
+                    <div class="meal-slot" data-meal="Breakfast">
+                        <h4>Breakfast</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Lunch">
+                        <h4>Lunch</h4>
+                    </div>
+                    <div class="meal-slot" data-meal="Dinner">
+                        <h4>Dinner</h4>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="script.js"></script>
     <script>
-<<<<<<< Updated upstream
         // Load recipes and meal plans when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             loadRecipes();
             loadMealPlans();
         });
-=======
-        // Load meal plans when the page loads
-        window.addEventListener('load', () => {
-            loadMealPlans();
-            loadRecipes();
-        });
 
         // Load all recipes for the dropdown
         function loadRecipes() {
-            fetch('http://localhost:8000/api/recipes.php?action=random')
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                alert('Please log in to view recipes');
+                return;
+            }
+
+            const select = document.getElementById('recipeSelect');
+            select.innerHTML = '<option value="">Select a recipe...</option>';
+
+            // Load favorites
+            fetch('http://localhost:8000/api/favorites.php?action=get')
                 .then(response => response.json())
-                .then(recipes => {
-                    const select = document.getElementById('recipeSelect');
-                    recipes.forEach(recipe => {
+                .then(favorites => {
+                    favorites.forEach(favorite => {
                         const option = document.createElement('option');
-                        option.value = recipe.id;
-                        option.textContent = recipe.name;
+                        option.value = favorite.recipe_id;
+                        option.textContent = `⭐ ${favorite.recipe_name}`;
+                        select.appendChild(option);
+                    });
+
+                    // Load journal entries
+                    return fetch('http://localhost:8000/api/journal.php?action=get');
+                })
+                .then(response => response.json())
+                .then(journalEntries => {
+                    journalEntries.forEach(entry => {
+                        const option = document.createElement('option');
+                        option.value = entry.recipe_id;
+                        option.textContent = `📝 ${entry.recipe_name}`;
                         select.appendChild(option);
                     });
                 })
@@ -242,41 +310,48 @@
                 return;
             }
 
-            fetch(`http://localhost:8000/api/meal_plans.php?action=get&user_id=1`)
-                .then(response => response.json())
+            fetch('http://localhost:8000/api/meal_plans.php?user_id=1')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load meal plans');
+                    }
+                    return response.json();
+                })
                 .then(mealPlans => {
                     // Clear existing meal slots
-                    document.querySelectorAll('.day-column').forEach(column => {
-                        column.innerHTML = `<h3>${column.id}</h3>`;
+                    document.querySelectorAll('.meal-slot').forEach(slot => {
+                        slot.innerHTML = '';
                     });
 
                     // Add meal plans to the grid
                     mealPlans.forEach(plan => {
                         const dayColumn = document.getElementById(plan.day);
-                        const mealSlot = document.createElement('div');
-                        mealSlot.className = 'meal-slot';
-                        mealSlot.innerHTML = `
-                            <h4>${plan.meal_type}</h4>
-                            <p>${plan.recipe_name}</p>
-                            <div class="actions">
-                                <button onclick="moveMeal(${plan.id})">Move</button>
-                                <button class="delete" onclick="deleteMeal(${plan.id})">Delete</button>
-                            </div>
-                        `;
-                        dayColumn.appendChild(mealSlot);
+                        const mealSlot = dayColumn.querySelector(`.meal-slot[data-meal="${plan.meal_type}"]`);
+                        if (mealSlot) {
+                            const mealContent = document.createElement('div');
+                            mealContent.className = 'meal-content';
+                            mealContent.innerHTML = `
+                                ${plan.recipe_name}
+                                <button class="delete-btn" onclick="deleteMeal(${plan.id})">×</button>
+                            `;
+                            mealSlot.appendChild(mealContent);
+                        }
                     });
                 })
-                .catch(error => console.error('Error loading meal plans:', error));
+                .catch(error => {
+                    console.error('Error loading meal plans:', error);
+                    alert('Failed to load meal plans');
+                });
         }
 
         // Add a meal to the plan
         function addMealToPlan() {
-            const recipeId = document.getElementById('recipeSelect').value;
+            const recipeName = document.getElementById('recipeSelect').value.trim();
             const day = document.getElementById('daySelect').value;
             const mealType = document.getElementById('mealTypeSelect').value;
 
-            if (!recipeId) {
-                alert('Please select a recipe');
+            if (!recipeName) {
+                alert('Please enter a recipe name');
                 return;
             }
 
@@ -286,58 +361,34 @@
                 return;
             }
 
-            fetch('http://localhost:8000/api/meal_plans.php?action=add', {
+            fetch('http://localhost:8000/api/meal_plans.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     user_id: 1,
-                    recipe_id: recipeId,
+                    recipe_name: recipeName,
                     day: day,
                     meal_type: mealType
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                } else {
-                    alert('Meal added to plan successfully');
-                    loadMealPlans();
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Failed to add meal to plan');
+                    });
                 }
+                return response.json();
             })
-            .catch(error => console.error('Error adding meal to plan:', error));
-        }
-
-        // Move a meal to a different day
-        function moveMeal(mealId) {
-            const newDay = prompt('Enter new day (Monday-Sunday):');
-            const newMealType = prompt('Enter new meal type (Breakfast/Lunch/Dinner):');
-
-            if (!newDay || !newMealType) return;
-
-            fetch('http://localhost:8000/api/meal_plans.php?action=update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    id: mealId,
-                    day: newDay,
-                    meal_type: newMealType
-                })
-            })
-            .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                } else {
-                    alert('Meal moved successfully');
-                    loadMealPlans();
-                }
+                document.getElementById('recipeSelect').value = '';
+                loadMealPlans();
             })
-            .catch(error => console.error('Error moving meal:', error));
+            .catch(error => {
+                console.error('Error adding meal to plan:', error);
+                alert(error.message);
+            });
         }
 
         // Delete a meal from the plan
@@ -350,13 +401,11 @@
                     if (data.error) {
                         alert(data.error);
                     } else {
-                        alert('Meal deleted successfully');
                         loadMealPlans();
                     }
                 })
                 .catch(error => console.error('Error deleting meal:', error));
         }
->>>>>>> Stashed changes
     </script>
 </body>
 </html> 

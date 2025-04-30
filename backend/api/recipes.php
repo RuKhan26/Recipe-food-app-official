@@ -1,10 +1,16 @@
 <?php
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
-require_once '../config/database.php';
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+require_once __DIR__ . '/../config/database.php';
 require_once '../vendor/autoload.php';
 
 // Load environment variables from .env file
@@ -24,16 +30,97 @@ use GuzzleHttp\Client;
 
 $action = $_GET['action'] ?? '';
 
-switch ($action) {
-    case 'ai_search':
-        aiSearch();
-        break;
-    case 'random':
-        getRandomRecipes();
-        break;
-    default:
-        echo json_encode(['error' => 'Invalid action']);
-        break;
+try {
+    $db = getDBConnection();
+    $method = $_SERVER['REQUEST_METHOD'];
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    if ($method === 'POST') {
+        if (!isset($data['name']) || !isset($data['ingredients']) || !isset($data['instructions'])) {
+            throw new Exception('Name, ingredients, and instructions are required');
+        }
+
+        // Check if recipes table exists and has user_id column
+        $tableExists = $db->query("SHOW TABLES LIKE 'recipes'")->rowCount() > 0;
+        if (!$tableExists) {
+            // Create recipes table if it doesn't exist
+            $db->exec("CREATE TABLE recipes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                ingredients TEXT NOT NULL,
+                instructions TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )");
+        } else {
+            // Check if user_id column exists
+            $columns = $db->query("SHOW COLUMNS FROM recipes")->fetchAll(PDO::FETCH_COLUMN);
+            if (!in_array('user_id', $columns)) {
+                // Add user_id column if it doesn't exist
+                $db->exec("ALTER TABLE recipes ADD COLUMN user_id INT NOT NULL AFTER id");
+            }
+        }
+
+        // Get the current user from the session or request
+        $user_id = $data['user_id'] ?? 1; // For now, using a default user_id
+
+        // Insert the recipe
+        $stmt = $db->prepare("INSERT INTO recipes (user_id, name, ingredients, instructions) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$user_id, $data['name'], $data['ingredients'], $data['instructions']]);
+        
+        $recipe_id = $db->lastInsertId();
+        echo json_encode(['id' => $recipe_id, 'message' => 'Recipe created successfully']);
+    }
+    else {
+        switch ($action) {
+            case 'ai_search':
+                aiSearch();
+                break;
+            case 'random':
+                // Get a random recipe
+                $stmt = $db->query("SELECT * FROM recipes ORDER BY RAND() LIMIT 1");
+                $recipe = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($recipe) {
+                    echo json_encode($recipe);
+                } else {
+                    throw new Exception('No recipes found');
+                }
+                break;
+            case 'get':
+                // Get the current user from the session or request
+                $user_id = $_GET['user_id'] ?? 1; // For now, using a default user_id
+
+                // Get all recipes for the user
+                $stmt = $db->prepare("SELECT * FROM recipes WHERE user_id = ?");
+                $stmt->execute([$user_id]);
+                $recipes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode($recipes);
+                break;
+            case 'search':
+                $query = $_GET['query'] ?? '';
+                if (empty($query)) {
+                    throw new Exception('Search query is required');
+                }
+
+                $stmt = $db->prepare("SELECT * FROM recipes WHERE name LIKE ? OR ingredients LIKE ?");
+                $searchTerm = "%$query%";
+                $stmt->execute([$searchTerm, $searchTerm]);
+                $recipes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode($recipes);
+                break;
+            default:
+                throw new Exception('Invalid action');
+        }
+    }
+} catch (Exception $e) {
+    http_response_code(400);
+    echo json_encode(['error' => $e->getMessage()]);
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
 }
 
 function aiSearch() {

@@ -3,13 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Favorite Recipes - Recipe Food App</title>
+  <title>My Favorite Recipes - Bite Board</title>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
   <!-- Navigation Bar -->
   <nav class="navbar">
     <a href="index.html" class="nav-brand">Bite Board</a>
+    <div class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
     <div class="nav-links">
       <a href="index.html">Home</a>
       <a href="favorites.html" class="active">My Favorites</a>
@@ -33,5 +38,16 @@
   </div>
 
   <script src="script.js"></script>
+  <script>
+    // Load favorites when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        loadFavorites();
+      } else {
+        document.getElementById('favoriteList').innerHTML = '<p>Please log in to view your favorites</p>';
+      }
+    });
+  </script>
 </body>
 </html> 

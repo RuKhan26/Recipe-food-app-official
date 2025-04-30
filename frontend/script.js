@@ -1,3 +1,7 @@
+// API Configuration
+const API_BASE_URL = 'http://localhost:8000/api';
+const RECIPES_API = `${API_BASE_URL}/recipes.php`;
+
 // === Logout User ===
 function logout() {
   // Clear the stored user data
@@ -58,7 +62,7 @@ function register() {
     return;
   }
 
-  fetch(`${USERS_API}?action=register`, {
+  fetch(`${API_BASE_URL}/users.php?action=register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -73,9 +77,57 @@ function register() {
   })
   .then(data => {
     console.log('Registration response:', data);
-    alert(data.message || 'User registered!');
-    if (data.message === 'User registered!') {
-      showLoginModal(); // Switch to login form after successful registration
+    if (data.message === 'User registered successfully') {
+      // Automatically log in the user
+      fetch(`${API_BASE_URL}/users.php?action=login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+      })
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(data => {
+            throw new Error(data.error || 'Login failed');
+          });
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('Login response:', data);
+        if (data.message === 'Login successful!') {
+          // Store user ID and username
+          localStorage.setItem('userId', data.user_id);
+          localStorage.setItem('currentUser', username);
+          
+          // Show success message
+          alert('Registration and login successful!');
+          
+          // Hide all modals
+          document.getElementById('welcomeModal').style.display = 'none';
+          document.getElementById('loginModal').style.display = 'none';
+          document.getElementById('registerModal').style.display = 'none';
+          
+          // Update login status display
+          const loginStatus = document.getElementById('loginStatus');
+          const userDisplay = document.getElementById('userDisplay');
+          
+          userDisplay.textContent = `Logged in as: ${username}`;
+          loginStatus.style.display = 'flex';
+          
+          // Reload any user-specific data
+          loadFavorites();
+          loadJournalEntries();
+          loadMealPlans();
+        } else {
+          throw new Error('Login failed. Please try logging in manually.');
+        }
+      })
+      .catch(error => {
+        console.error('Login error:', error);
+        alert(error.message || 'An error occurred during login. Please try logging in manually.');
+      });
+    } else {
+      throw new Error('Registration failed. Please try again.');
     }
   })
   .catch(error => {
@@ -97,7 +149,7 @@ function login() {
     return;
   }
 
-  fetch(`${USERS_API}?action=login`, {
+  fetch(`${API_BASE_URL}/users.php?action=login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -176,8 +228,6 @@ window.addEventListener('load', () => {
 });
 
 // === Search Recipes ===
-const API_BASE_URL = 'http://localhost:8000/api';
-const RECIPES_API = `${API_BASE_URL}/recipes.php`;
 const FAVORITES_API = `${API_BASE_URL}/favorites.php`;
 const JOURNAL_API = `${API_BASE_URL}/journal.php`;
 const USERS_API = `${API_BASE_URL}/users.php`;
@@ -226,10 +276,12 @@ async function getRandomRecipe() {
         showLoadingSpinner();
         const response = await fetch(`${RECIPES_API}?action=random`);
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Error finding recipe');
+            throw new Error('Failed to fetch random recipe');
         }
         const recipe = await response.json();
+        if (!recipe || Object.keys(recipe).length === 0) {
+            throw new Error('No recipe found');
+        }
         displayRecipes([recipe]);
     } catch (error) {
         console.error('Random recipe error:', error);
@@ -323,6 +375,10 @@ function saveRecipeToFavorites(recipeId) {
   .then(data => {
     alert(data.message || 'Recipe saved to favorites!');
     loadFavorites(); // Refresh the favorites list
+    // Refresh the recipe dropdown in meal plans
+    if (document.getElementById('recipeSelect')) {
+      loadRecipes();
+    }
   })
   .catch(error => {
     console.error('Error saving recipe:', error);
@@ -332,83 +388,97 @@ function saveRecipeToFavorites(recipeId) {
 }
 
 // Add function to delete favorites
-function deleteFavorite(favoriteId) {
-  if (!confirm('Are you sure you want to remove this recipe from your favorites?')) {
-    return;
-  }
+async function removeFromFavorites(favoriteId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/favorites.php`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                favorite_id: favoriteId,
+                user_id: localStorage.getItem('userId')
+            })
+        });
 
-  const userId = localStorage.getItem('userId');
-  if (!userId) {
-    alert('Please log in to manage favorites');
-    return;
-  }
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to remove from favorites');
+        }
 
-  fetch(`${FAVORITES_API}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      user_id: userId,
-      favorite_id: favoriteId
-    })
-  })
-  .then(res => {
-    if (!res.ok) {
-      return res.json().then(data => {
-        throw new Error(data.error || 'Failed to delete favorite');
-      });
+        // Refresh the favorites list
+        loadFavorites();
+    } catch (error) {
+        console.error('Error removing from favorites:', error);
+        alert(error.message);
     }
-    return res.json();
-  })
-  .then(data => {
-    alert('Recipe removed from favorites');
-    loadFavorites(); // Refresh the favorites list
-  })
-  .catch(error => {
-    console.error('Error deleting favorite:', error);
-    alert('Error deleting favorite: ' + error.message);
-  });
 }
 
 // === Load Favorites ===
-function loadFavorites() {
-  const userId = localStorage.getItem('userId');
-  if (!userId) {
-    document.getElementById('favoriteList').innerHTML = '<p>Please log in to see your favorites</p>';
-    return;
-  }
+async function loadFavorites() {
+    try {
+        const userId = localStorage.getItem('currentUser');
+        if (!userId) {
+            document.getElementById('favoriteList').innerHTML = '<p>Please log in to view your favorites</p>';
+            return;
+        }
 
-  fetch(`${FAVORITES_API}?user_id=${userId}`)
-    .then(res => {
-      if (!res.ok) {
-        return res.json().then(data => {
-          throw new Error(data.error || 'Failed to load favorites');
+        const response = await fetch(`${API_BASE_URL}/favorites.php?user_id=${userId}`);
+        if (!response.ok) {
+            throw new Error('Failed to load favorites');
+        }
+
+        const favorites = await response.json();
+        const favoriteList = document.getElementById('favoriteList');
+        
+        if (favorites.length === 0) {
+            favoriteList.innerHTML = '<p>No favorite recipes yet</p>';
+            return;
+        }
+
+        favoriteList.innerHTML = favorites.map(favorite => `
+            <div class="favorite-item">
+                <h3>${favorite.recipe_name}</h3>
+                <p><strong>Ingredients:</strong> ${favorite.ingredients}</p>
+                <p><strong>Instructions:</strong> ${favorite.instructions}</p>
+                <button onclick="removeFavorite(${favorite.favorite_id})">Remove from Favorites</button>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading favorites:', error);
+        document.getElementById('favoriteList').innerHTML = '<p>Error loading favorites. Please try again later.</p>';
+    }
+}
+
+async function removeFavorite(favoriteId) {
+    try {
+        const userId = localStorage.getItem('currentUser');
+        if (!userId) {
+            alert('Please log in to remove favorites');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/favorites.php`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                favorite_id: favoriteId,
+                user_id: userId
+            })
         });
-      }
-      return res.json();
-    })
-    .then(favorites => {
-      const list = document.getElementById('favoriteList');
-      if (favorites.length === 0) {
-        list.innerHTML = '<p>No favorite recipes yet</p>';
-        return;
-      }
 
-      list.innerHTML = favorites.map(recipe => `
-        <div class="recipe-card">
-          <h3>${recipe.name}</h3>
-          <p><strong>Ingredients:</strong> ${recipe.ingredients}</p>
-          <p><strong>Instructions:</strong> ${recipe.instructions}</p>
-          <button onclick="deleteFavorite(${recipe.favorite_id})" class="delete-btn">Remove from Favorites</button>
-        </div>
-      `).join('');
-    })
-    .catch(error => {
-      console.error('Error loading favorites:', error);
-      document.getElementById('favoriteList').innerHTML = 
-        `<p class="error">Error loading favorites: ${error.message}</p>`;
-    });
+        if (!response.ok) {
+            throw new Error('Failed to remove favorite');
+        }
+
+        // Reload the favorites list
+        loadFavorites();
+    } catch (error) {
+        console.error('Error removing favorite:', error);
+        alert('Failed to remove favorite. Please try again later.');
+    }
 }
 
 // === Save Journal ===
@@ -451,6 +521,10 @@ function saveJournal() {
     document.getElementById('journalContent').value = '';
     // Load all journal entries
     loadJournalEntries();
+    // Refresh the recipe dropdown in meal plans
+    if (document.getElementById('recipeSelect')) {
+      loadRecipes();
+    }
   })
   .catch(error => {
     console.error('Error saving journal entry:', error);
@@ -509,43 +583,58 @@ function loadJournalEntries() {
 }
 
 // Add new function to save journal entry to favorites
-function saveJournalToFavorites(entryId, title, content) {
-  const userId = localStorage.getItem('userId');
-  if (!userId) {
-    alert('Please log in to save recipes to favorites');
-    return;
-  }
+async function saveJournalToFavorites(entryId, title, content) {
+    try {
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            alert('Please log in to save recipes to favorites');
+            return;
+        }
 
-  // Create a new recipe object
-  const recipeData = {
-    user_id: userId,
-    name: title,
-    ingredients: content,
-    instructions: content,
-    source: 'journal'
-  };
+        // First create a recipe from the journal entry
+        const recipeResponse = await fetch(`${API_BASE_URL}/recipes.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: title,
+                ingredients: content,
+                instructions: content,
+                user_id: userId
+            })
+        });
 
-  fetch(`${FAVORITES_API}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(recipeData)
-  })
-  .then(res => {
-    if (!res.ok) {
-      return res.json().then(data => {
-        throw new Error(data.error || 'Failed to save recipe');
-      });
+        if (!recipeResponse.ok) {
+            const error = await recipeResponse.json();
+            throw new Error(error.error || 'Failed to create recipe');
+        }
+
+        const recipeData = await recipeResponse.json();
+        
+        // Then save the recipe to favorites
+        const favoriteResponse = await fetch(`${API_BASE_URL}/favorites.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                recipe_id: recipeData.id,
+                user_id: userId
+            })
+        });
+
+        if (!favoriteResponse.ok) {
+            const error = await favoriteResponse.json();
+            throw new Error(error.error || 'Failed to save to favorites');
+        }
+
+        alert('Recipe saved to favorites!');
+        loadFavorites(); // Refresh the favorites list
+    } catch (error) {
+        console.error('Error saving recipe:', error);
+        alert(error.message);
     }
-    return res.json();
-  })
-  .then(data => {
-    alert('Recipe saved to favorites!');
-    loadFavorites(); // Refresh the favorites list
-  })
-  .catch(error => {
-    console.error('Error saving recipe:', error);
-    alert('Error saving recipe: ' + error.message);
-  });
 }
 
 // Load journal entries when the page loads
@@ -560,7 +649,7 @@ window.addEventListener('load', () => {
 function askAI() {
   const prompt = document.getElementById('aiPrompt').value.trim();
 
-  fetch('http://localhost:8000/backend/api/ai_assistant.php', {
+  fetch(`${API_BASE_URL}/backend/api/ai_assistant.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt })
@@ -579,7 +668,7 @@ function loadMealPlans() {
         return;
     }
 
-    fetch(`http://localhost:8000/api/meal_plans.php?action=get&user_id=${userId}`)
+    fetch(`${API_BASE_URL}/meal_plans.php?action=get&user_id=${userId}`)
         .then(response => {
             if (!response.ok) {
                 return response.json().then(data => {
@@ -589,48 +678,27 @@ function loadMealPlans() {
             return response.json();
         })
         .then(meals => {
-            const mealPlanContainer = document.getElementById('mealPlanContainer');
-            if (!mealPlanContainer) return;
-
-            // Clear existing meals
-            mealPlanContainer.innerHTML = '';
-
-            // Create day columns
-            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-            days.forEach(day => {
-                const dayColumn = document.createElement('div');
-                dayColumn.className = 'day-column';
-                dayColumn.innerHTML = `<h3>${day}</h3>`;
-
-                // Create meal slots for each day
-                const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
-                mealTypes.forEach(mealType => {
-                    const mealSlot = document.createElement('div');
-                    mealSlot.className = 'meal-slot';
-                    mealSlot.innerHTML = `<h4>${mealType}</h4>`;
-                    dayColumn.appendChild(mealSlot);
-                });
-
-                mealPlanContainer.appendChild(dayColumn);
+            // Clear existing meal slots
+            document.querySelectorAll('.meal-slot').forEach(slot => {
+                const mealType = slot.getAttribute('data-meal');
+                slot.innerHTML = `<h4>${mealType}</h4>`;
             });
 
             // Add meals to their respective slots
             meals.forEach(meal => {
-                const dayColumn = Array.from(mealPlanContainer.querySelectorAll('.day-column'))
-                    .find(col => col.querySelector('h3').textContent === meal.day);
-                
+                const dayColumn = document.getElementById(meal.day);
                 if (dayColumn) {
-                    const mealSlot = Array.from(dayColumn.querySelectorAll('.meal-slot'))
-                        .find(slot => slot.querySelector('h4').textContent === meal.meal_type);
-                    
+                    const mealSlot = dayColumn.querySelector(`.meal-slot[data-meal="${meal.meal_type}"]`);
                     if (mealSlot) {
-                        const mealElement = document.createElement('div');
-                        mealElement.className = 'meal-item';
-                        mealElement.innerHTML = `
-                            <h4>${meal.recipe_name}</h4>
-                            <button onclick="deleteMeal(${meal.id})" class="delete-btn">Delete</button>
+                        const mealContent = document.createElement('div');
+                        mealContent.className = 'meal-content';
+                        mealContent.innerHTML = `
+                            <div class="meal-item">
+                                <span>${meal.recipe_name}</span>
+                                <button class="delete-btn" onclick="deleteMeal(${meal.id})">×</button>
+                            </div>
                         `;
-                        mealSlot.appendChild(mealElement);
+                        mealSlot.appendChild(mealContent);
                     }
                 }
             });
@@ -641,23 +709,26 @@ function loadMealPlans() {
         });
 }
 
+// Add a meal to the plan
 function addMealToPlan() {
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
-        showMessage('Please log in to add meals to your plan', 'error');
-        return;
-    }
-
-    const recipeId = document.getElementById('recipeSelect').value;
+    const recipeSelect = document.getElementById('recipeSelect');
+    const recipeId = recipeSelect.value;
+    const recipeName = recipeSelect.options[recipeSelect.selectedIndex].text;
     const day = document.getElementById('daySelect').value;
     const mealType = document.getElementById('mealTypeSelect').value;
 
     if (!recipeId) {
-        showMessage('Please select a recipe', 'error');
+        alert('Please select a recipe');
         return;
     }
 
-    fetch(`http://localhost:8000/api/meal_plans.php?action=add`, {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        alert('Please log in to add meals to your plan');
+        return;
+    }
+
+    fetch(`${API_BASE_URL}/meal_plans.php`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -665,17 +736,50 @@ function addMealToPlan() {
         body: JSON.stringify({
             user_id: userId,
             recipe_id: recipeId,
+            recipe_name: recipeName,
             day: day,
             meal_type: mealType
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            throw new Error(data.error);
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to add meal to plan');
+            });
         }
+        return response.json();
+    })
+    .then(data => {
+        // Clear the selection
+        recipeSelect.value = '';
+        
+        // Find the correct day column and meal slot
+        const dayColumn = document.getElementById(day);
+        if (dayColumn) {
+            const mealSlot = dayColumn.querySelector(`.meal-slot[data-meal="${mealType}"]`);
+            if (mealSlot) {
+                // Create the meal content
+                const mealContent = document.createElement('div');
+                mealContent.className = 'meal-content';
+                mealContent.innerHTML = `
+                    <div class="meal-item">
+                        <span>${recipeName}</span>
+                        <button class="delete-btn" onclick="deleteMeal(${data.id})">×</button>
+                    </div>
+                `;
+                
+                // Clear any existing meal content but keep the meal type label
+                const existingContent = mealSlot.querySelector('.meal-content');
+                if (existingContent) {
+                    existingContent.remove();
+                }
+                
+                // Add the new meal content
+                mealSlot.appendChild(mealContent);
+            }
+        }
+        
         showMessage('Meal added to plan successfully', 'success');
-        loadMealPlans(); // Reload the meal plans
     })
     .catch(error => {
         console.error('Error adding meal to plan:', error);
@@ -683,26 +787,38 @@ function addMealToPlan() {
     });
 }
 
+// Delete a meal from the plan
 function deleteMeal(mealId) {
     if (!confirm('Are you sure you want to delete this meal from your plan?')) {
         return;
     }
 
-    fetch(`http://localhost:8000/api/meal_plans.php?action=delete&id=${mealId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            showMessage('Meal removed from plan successfully', 'success');
-            loadMealPlans(); // Reload the meal plans after deleting
-        })
-        .catch(error => {
-            console.error('Error deleting meal:', error);
-            showMessage('Error deleting meal', 'error');
-        });
+    fetch(`${API_BASE_URL}/meal_plans.php?action=delete&id=${mealId}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to delete meal');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Find and remove the meal from the grid
+        const mealContent = document.querySelector(`.meal-content button[onclick="deleteMeal(${mealId})"]`).parentElement;
+        if (mealContent) {
+            mealContent.remove();
+        }
+        showMessage('Meal removed from plan successfully', 'success');
+    })
+    .catch(error => {
+        console.error('Error deleting meal:', error);
+        showMessage('Error deleting meal: ' + error.message, 'error');
+    });
 }
 
+// Show message function
 function showMessage(message, type) {
     const messageDiv = document.getElementById('message');
     if (messageDiv) {
@@ -719,15 +835,37 @@ function showMessage(message, type) {
 function loadRecipes() {
     const userId = localStorage.getItem('userId');
     if (!userId) {
-        document.getElementById('recipeSelect').innerHTML = '<option value="">Please log in to view your recipes</option>';
+        document.getElementById('recipeSelect').innerHTML = '<option value="">Please log in to view recipes</option>';
         return;
     }
 
     const select = document.getElementById('recipeSelect');
-    select.innerHTML = '<option value="">Pick a recipe from your favorites or journal...</option>';
+    select.innerHTML = '<option value="">Select a recipe...</option>';
 
-    // Fetch favorite recipes
-    fetch(`${FAVORITES_API}?user_id=${userId}`)
+    // Load user's recipes
+    fetch(`${API_BASE_URL}/recipes.php?action=get&user_id=${userId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load recipes');
+            }
+            return response.json();
+        })
+        .then(recipes => {
+            if (recipes && recipes.length > 0) {
+                const recipesGroup = document.createElement('optgroup');
+                recipesGroup.label = 'My Recipes';
+                recipes.forEach(recipe => {
+                    const option = document.createElement('option');
+                    option.value = recipe.id;
+                    option.textContent = `📖 ${recipe.name || 'Unnamed Recipe'}`;
+                    recipesGroup.appendChild(option);
+                });
+                select.appendChild(recipesGroup);
+            }
+
+            // Load favorites
+            return fetch(`${API_BASE_URL}/favorites.php?user_id=${userId}`);
+        })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to load favorites');
@@ -740,58 +878,52 @@ function loadRecipes() {
                 favGroup.label = 'Favorite Recipes';
                 favorites.forEach(favorite => {
                     const option = document.createElement('option');
-                    option.value = favorite.id;
-                    option.textContent = favorite.name;
+                    option.value = favorite.recipe_id;
+                    option.textContent = `⭐ ${favorite.recipe_name || 'Unnamed Recipe'}`;
                     favGroup.appendChild(option);
                 });
                 select.appendChild(favGroup);
             }
 
-            // Fetch journal entries
-            return fetch(`${JOURNAL_API}?user_id=${userId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to load journal entries');
-                    }
-                    return response.json();
-                })
-                .then(journalEntries => {
-                    if (journalEntries && journalEntries.length > 0) {
-                        const journalGroup = document.createElement('optgroup');
-                        journalGroup.label = 'Journal Entries';
-                        journalEntries.forEach(entry => {
-                            const option = document.createElement('option');
-                            option.value = entry.id;
-                            option.textContent = entry.title;
-                            journalGroup.appendChild(option);
-                        });
-                        select.appendChild(journalGroup);
-                    }
-
-                    if ((!favorites || favorites.length === 0) && 
-                        (!journalEntries || journalEntries.length === 0)) {
-                        const option = document.createElement('option');
-                        option.disabled = true;
-                        option.textContent = 'No recipes found. Add some to your favorites or journal first.';
-                        select.appendChild(option);
-                    }
+            // Load journal entries
+            return fetch(`${API_BASE_URL}/journal.php?user_id=${userId}`);
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load journal entries');
+            }
+            return response.json();
+        })
+        .then(journalEntries => {
+            if (journalEntries && journalEntries.length > 0) {
+                const journalGroup = document.createElement('optgroup');
+                journalGroup.label = 'Journal Entries';
+                journalEntries.forEach(entry => {
+                    const option = document.createElement('option');
+                    option.value = entry.id;
+                    option.textContent = `📝 ${entry.title || 'Untitled Entry'}`;
+                    journalGroup.appendChild(option);
                 });
+                select.appendChild(journalGroup);
+            }
+
+            if ((!recipes || recipes.length === 0) && (!favorites || favorites.length === 0) && (!journalEntries || journalEntries.length === 0)) {
+                const option = document.createElement('option');
+                option.disabled = true;
+                option.textContent = 'No recipes found. Add some recipes, favorites, or journal entries first.';
+                select.appendChild(option);
+            }
         })
         .catch(error => {
             console.error('Error loading recipes:', error);
-            const option = document.createElement('option');
-            option.disabled = true;
-            option.textContent = 'Error loading recipes. Please try again later.';
-            select.appendChild(option);
+            select.innerHTML = `<option value="" disabled>Error loading recipes: ${error.message}</option>`;
         });
 }
 
-// Load favorites when the page loads
-window.addEventListener('load', () => {
-  const currentUser = localStorage.getItem('currentUser');
-  if (currentUser) {
-    loadFavorites();
-  }
+// Load recipes when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadRecipes();
+    loadMealPlans();
 });
 
 // Mobile Navigation

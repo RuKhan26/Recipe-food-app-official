@@ -10,9 +10,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once '../config/database.php';
+require_once __DIR__ . '/../config/database.php';
 
+// Get action from either query parameter or URL path
 $action = $_GET['action'] ?? '';
+if (empty($action)) {
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $pathParts = explode('/', trim($path, '/'));
+    $action = end($pathParts);
+}
+
+// Remove .php from action if present
+$action = str_replace('.php', '', $action);
 
 try {
     $db = getDBConnection();
@@ -46,15 +55,15 @@ try {
                 break;
             }
 
+            // Hash the password
+            $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
+
             // Create new user
             $stmt = $db->prepare('INSERT INTO users (username, password) VALUES (?, ?)');
-            $stmt->execute([
-                $data['username'],
-                password_hash($data['password'], PASSWORD_DEFAULT)
-            ]);
-
+            $stmt->execute([$data['username'], $hashedPassword]);
+            
             http_response_code(201);
-            echo json_encode(['message' => 'User registered!']);
+            echo json_encode(['message' => 'User registered successfully']);
             break;
 
         case 'login':
@@ -66,20 +75,26 @@ try {
                 exit;
             }
 
-            $stmt = $db->prepare('SELECT * FROM users WHERE username = ?');
+            // Get user by username
+            $stmt = $db->prepare('SELECT id, username, password FROM users WHERE username = ?');
             $stmt->execute([$data['username']]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($user && password_verify($data['password'], $user['password'])) {
-                http_response_code(200);
-                echo json_encode([
-                    'message' => 'Login successful!',
-                    'user_id' => $user['id']
-                ]);
-            } else {
+            if (!$user || !password_verify($data['password'], $user['password'])) {
                 http_response_code(401);
                 echo json_encode(['error' => 'Invalid username or password']);
+                break;
             }
+
+            // Remove password from response
+            unset($user['password']);
+            
+            http_response_code(200);
+            echo json_encode([
+                'message' => 'Login successful!',
+                'user_id' => $user['id'],
+                'username' => $user['username']
+            ]);
             break;
 
         case 'delete':
