@@ -1,13 +1,13 @@
 Rufaida, Keith ,Shikar
 
 Welcome to our food website. Below will be steps to run our website
-All of this was equal work 50/50
+All of this was equal work 33/33/33
 
 We decided to create a new website entirely and worked mostly on using our previous knowledge to create a new concept of a recipe website that would give users easier ideas when cooking or just let individuals save their recipes for the future.
 We mainly focus on trying to provide an AI feature for our website but keeping the Frontend and Backend structure but expanding to new features that test our knowledge with coding an API
 
 
-
+On our project we added feautres including an ai assitant that opens a pop up message bubble upon enterign the website. Any ingrdiesnts can be inputted to the ai assistant and it will return multiple recipes using those ingredints. THen we added a surprise me button that generates randome recipes instantly upon clicking it. There is a recipe jjounral where one can add their own recipes as well as a favorites section where you can save the recipes for returned access. Finally there is a meal plan section that has a weekly diagram where you cna add saved recipes or your own entries to any week day and for a specific meal slot as well.  
 
 
 **How to run this code using XAMPP on Windows:**
@@ -111,9 +111,110 @@ PHP:
 This should let you now access our website in any web browser and test our website like all the above steps of how to run our website
 
 
-**Unit Test:**
+**Unit Test:** (ai assitance)
 
+After follwing the instructions, the tests were ran, however kept returning errors. With the help of ai, we were able to 
+recognize where the errors where taking place and ai made suggestions based on our code, on what errors to correct. The following screen shots show the conversation with ai, after running and analyzing our tests. 
 
+<img width="644" alt="Screenshot 2025-04-30 at 9 41 39 AM" src="https://github.com/user-attachments/assets/2e2b2731-290a-4480-b178-846f10203fac" />
 
+<img width="641" alt="Screenshot 2025-04-30 at 9 41 58 AM" src="https://github.com/user-attachments/assets/c2e44583-c958-4ee6-a33d-63859579405c" />
 
+<img width="636" alt="Screenshot 2025-04-30 at 9 42 20 AM" src="https://github.com/user-attachments/assets/50e6e25c-c06f-4129-b2f5-386924a9cbad" />
+
+<img width="637" alt="Screenshot 2025-04-30 at 9 43 53 AM" src="https://github.com/user-attachments/assets/e94e93b6-0cd8-48c6-8f80-080d319c26ee" />
+
+<img width="638" alt="Screenshot 2025-04-30 at 9 44 17 AM" src="https://github.com/user-attachments/assets/4c473375-dd6e-4a79-bf51-f5882df8f086" />
+this final image shows how the ai ran the tests for us each time to assure correct progress. In the final image it shows all 4 tests as passing. 
+Here's what we fixed:
+- Added a unique username generation using timestamps to prevent conflicts
+- Added proper setup with setUp() method to initialize test data
+-Modified the login test to ensure user registration before attempting login
+-All tests now properly handle JSON responses and check for the correct keys and values
+-The test suite now covers:
+-Getting the user list
+-Creating a new user
+-Successfully logging in with valid credentials
+-Failed login attempt with invalid credentials
+-Each test is independent and uses its own unique test data.
+
+additonal tests ran -- code below 
+
+testRegisterWithMissingFields(): Tests input validation for required fields
+Tests registration with missing password
+Tests registration with missing username
+Verifies appropriate error messages are returned
+
+testRegisterWithInvalidUsername(): Tests username validation rules
+Tests username with special characters (should be rejected)
+Tests username that's too short (less than 3 characters)
+Verifies appropriate error messages are returned
+
+<?php
+use PHPUnit\Framework\TestCase;
+
+class RecipeFoodAppTest extends TestCase {
+    private $baseUrl = 'http://localhost:8000/backend/api';
+    private $testUsername;
+
+    protected function setUp(): void {
+        parent::setUp();
+        // Generate a unique username for each test run
+        $this->testUsername = 'testuser_' . time();
+    }
+
+    // ... existing code ...
+
+    public function testRegisterWithMissingFields() {
+        // Test with missing password
+        $data = ['username' => $this->testUsername];
+        $response = $this->sendPost("users.php?action=register", $data);
+        $responseData = json_decode($response, true);
+        $this->assertArrayHasKey('error', $responseData);
+        $this->assertEquals('Username and password are required', $responseData['error']);
+
+        // Test with missing username
+        $data = ['password' => 'testpass'];
+        $response = $this->sendPost("users.php?action=register", $data);
+        $responseData = json_decode($response, true);
+        $this->assertArrayHasKey('error', $responseData);
+        $this->assertEquals('Username and password are required', $responseData['error']);
+    }
+
+    public function testRegisterWithInvalidUsername() {
+        // Test with username containing special characters
+        $data = ['username' => 'test@user#123', 'password' => 'testpass'];
+        $response = $this->sendPost("users.php?action=register", $data);
+        $responseData = json_decode($response, true);
+        $this->assertArrayHasKey('error', $responseData);
+        $this->assertEquals('Username can only contain letters, numbers, and underscores', $responseData['error']);
+
+        // Test with username that's too short
+        $data = ['username' => 'ab', 'password' => 'testpass'];
+        $response = $this->sendPost("users.php?action=register", $data);
+        $responseData = json_decode($response, true);
+        $this->assertArrayHasKey('error', $responseData);
+        $this->assertEquals('Username must be between 3 and 20 characters', $responseData['error']);
+    }
+
+    private function sendGet($endpoint) {
+        $ch = curl_init($this->baseUrl . '/' . $endpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return $response;
+    }
+
+    private function sendPost($endpoint, $data) {
+        $ch = curl_init($this->baseUrl . '/' . $endpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return $response;
+    }
+}
+?>
+One of the additioanl tests failed, however the other 5 were pass (including the 4 required). However due to proceeding errors that the additioanal 2 tests had to get removed from the code. 
 
