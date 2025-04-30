@@ -2,22 +2,19 @@
 function logout() {
   // Clear the stored user data
   localStorage.removeItem('currentUser');
-  
-  // Update the UI
-  const loginStatus = document.getElementById('loginStatus');
-  const userDisplay = document.getElementById('userDisplay');
-  
-  userDisplay.textContent = '';
-  loginStatus.style.display = 'none';
-  
-  // Show welcome modal
-  document.getElementById('welcomeModal').style.display = 'block';
+  localStorage.removeItem('userId');
   
   // Clear any user-specific data
-  document.getElementById('favoriteList').innerHTML = '';
-  document.getElementById('journalEntries').innerHTML = '';
+  const favoriteList = document.getElementById('favoriteList');
+  const journalEntries = document.getElementById('journalEntries');
+  const mealPlanContainer = document.getElementById('mealPlanContainer');
   
-  alert('Logged out successfully!');
+  if (favoriteList) favoriteList.innerHTML = '';
+  if (journalEntries) journalEntries.innerHTML = '';
+  if (mealPlanContainer) mealPlanContainer.innerHTML = '';
+  
+  // Redirect to home page
+  window.location.href = 'index.html';
 }
 
 // Show login modal
@@ -61,7 +58,7 @@ function register() {
     return;
   }
 
-  fetch('http://localhost:8000/backend/api/users.php?action=register', {
+  fetch(`${USERS_API}?action=register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -100,7 +97,7 @@ function login() {
     return;
   }
 
-  fetch('http://localhost:8000/backend/api/users.php?action=login', {
+  fetch(`${USERS_API}?action=login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -115,7 +112,11 @@ function login() {
   })
   .then(data => {
     console.log('Login response:', data);
-    if (data.message === 'Login successful!') {
+    if (data.message === 'Login successful!' && data.user_id) {
+      // Store user ID and username
+      localStorage.setItem('userId', data.user_id);
+      localStorage.setItem('currentUser', username);
+      
       // Show success message
       alert('Login successful!');
       
@@ -131,10 +132,12 @@ function login() {
       userDisplay.textContent = `Logged in as: ${username}`;
       loginStatus.style.display = 'flex';
       
-      // Store username in localStorage for persistence
-      localStorage.setItem('currentUser', username);
+      // Reload any user-specific data
+      loadFavorites();
+      loadJournalEntries();
+      loadMealPlans();
     } else {
-      alert('Login failed. Please check your credentials.');
+      throw new Error('Login failed. Please check your credentials.');
     }
   })
   .catch(error => {
@@ -146,7 +149,9 @@ function login() {
 // Check for existing login on page load
 window.addEventListener('load', () => {
   const currentUser = localStorage.getItem('currentUser');
-  if (currentUser) {
+  const userId = localStorage.getItem('userId');
+  
+  if (currentUser && userId) {
     // User is already logged in
     document.getElementById('welcomeModal').style.display = 'none';
     document.getElementById('loginModal').style.display = 'none';
@@ -157,6 +162,11 @@ window.addEventListener('load', () => {
     
     userDisplay.textContent = `Logged in as: ${currentUser}`;
     loginStatus.style.display = 'flex';
+    
+    // Load user-specific data
+    loadFavorites();
+    loadJournalEntries();
+    loadMealPlans();
   } else {
     // Show welcome modal for new users
     document.getElementById('welcomeModal').style.display = 'block';
@@ -170,28 +180,44 @@ const API_BASE_URL = 'http://localhost:8000/api';
 const RECIPES_API = `${API_BASE_URL}/recipes.php`;
 const FAVORITES_API = `${API_BASE_URL}/favorites.php`;
 const JOURNAL_API = `${API_BASE_URL}/journal.php`;
+const USERS_API = `${API_BASE_URL}/users.php`;
 
 async function searchRecipes() {
-    const ingredients = document.getElementById('ingredients').value;
-    if (!ingredients) {
-        alert('Please enter ingredients');
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    const query = searchInput.value.trim();
+
+    if (!query) {
+        searchResults.innerHTML = '<p>Please enter a search term</p>';
         return;
     }
 
+    searchResults.innerHTML = '<div class="loading">Searching recipes...</div>';
+
     try {
-        showLoadingSpinner();
-        const response = await fetch(`${RECIPES_API}?action=ai_search&ingredients=${encodeURIComponent(ingredients)}`);
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Error finding recipes');
+        const response = await fetch(`${API_BASE_URL}/google_search.php?query=${encodeURIComponent(query)}`);
+        const results = await response.json();
+
+        if (results.error) {
+            throw new Error(results.error);
         }
-        const recipes = await response.json();
-        displayRecipes(recipes);
+
+        if (results.length === 0) {
+            searchResults.innerHTML = '<p>No recipes found. Try a different search term.</p>';
+            return;
+        }
+
+        searchResults.innerHTML = results.map(recipe => `
+            <div class="recipe-card">
+                ${recipe.thumbnail ? `<img src="${recipe.thumbnail}" alt="${recipe.title}">` : ''}
+                <h3>${recipe.title}</h3>
+                <p>${recipe.snippet}</p>
+                <a href="${recipe.link}" target="_blank" class="btn">View Recipe</a>
+            </div>
+        `).join('');
     } catch (error) {
-        console.error('Search error:', error);
-        alert('Error finding recipes: ' + error.message);
-    } finally {
-        hideLoadingSpinner();
+        console.error('Error searching recipes:', error);
+        searchResults.innerHTML = `<p>Error searching recipes: ${error.message}</p>`;
     }
 }
 
@@ -251,7 +277,7 @@ function displayRecipes(recipes) {
                 <h4>Instructions:</h4>
                 <p>${instructions}</p>
             </div>
-            <button onclick="saveToFavorites(${JSON.stringify(recipe).replace(/"/g, '&quot;')})">
+            <button onclick="saveRecipeToFavorites(${recipe.id})">
                 Save to Favorites
             </button>
         `;
@@ -272,18 +298,18 @@ document.getElementById('surprise-me')?.addEventListener('click', function(e) {
 
 // === Save to Favorites ===
 function saveRecipeToFavorites(recipeId) {
-  const currentUser = localStorage.getItem('currentUser');
-  if (!currentUser) {
-    alert('Please log in to save recipes to favorites');
+  const userId = localStorage.getItem('userId');
+  if (!userId) {
+    document.getElementById('favoriteList').innerHTML = '<p>Please log in to save recipes to favorites</p>';
     return;
   }
 
-  fetch('http://localhost:8000/backend/api/favorites.php', {
+  fetch(`${FAVORITES_API}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
       recipe_id: recipeId,
-      user_id: 1 // For now, using a default user_id
+      user_id: userId
     })
   })
   .then(res => {
@@ -300,22 +326,65 @@ function saveRecipeToFavorites(recipeId) {
   })
   .catch(error => {
     console.error('Error saving recipe:', error);
-    alert(error.message || 'An error occurred while saving the recipe');
+    document.getElementById('favoriteList').innerHTML = 
+      `<p class="error">Error saving recipe: ${error.message}</p>`;
+  });
+}
+
+// Add function to delete favorites
+function deleteFavorite(favoriteId) {
+  if (!confirm('Are you sure you want to remove this recipe from your favorites?')) {
+    return;
+  }
+
+  const userId = localStorage.getItem('userId');
+  if (!userId) {
+    alert('Please log in to manage favorites');
+    return;
+  }
+
+  fetch(`${FAVORITES_API}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      user_id: userId,
+      favorite_id: favoriteId
+    })
+  })
+  .then(res => {
+    if (!res.ok) {
+      return res.json().then(data => {
+        throw new Error(data.error || 'Failed to delete favorite');
+      });
+    }
+    return res.json();
+  })
+  .then(data => {
+    alert('Recipe removed from favorites');
+    loadFavorites(); // Refresh the favorites list
+  })
+  .catch(error => {
+    console.error('Error deleting favorite:', error);
+    alert('Error deleting favorite: ' + error.message);
   });
 }
 
 // === Load Favorites ===
 function loadFavorites() {
-  const currentUser = localStorage.getItem('currentUser');
-  if (!currentUser) {
+  const userId = localStorage.getItem('userId');
+  if (!userId) {
     document.getElementById('favoriteList').innerHTML = '<p>Please log in to see your favorites</p>';
     return;
   }
 
-  fetch('http://localhost:8000/backend/api/favorites.php?user_id=1') // For now, using a default user_id
+  fetch(`${FAVORITES_API}?user_id=${userId}`)
     .then(res => {
       if (!res.ok) {
-        throw new Error('Failed to load favorites');
+        return res.json().then(data => {
+          throw new Error(data.error || 'Failed to load favorites');
+        });
       }
       return res.json();
     })
@@ -327,42 +396,45 @@ function loadFavorites() {
       }
 
       list.innerHTML = favorites.map(recipe => `
-        <li class="recipe-card">
+        <div class="recipe-card">
           <h3>${recipe.name}</h3>
           <p><strong>Ingredients:</strong> ${recipe.ingredients}</p>
           <p><strong>Instructions:</strong> ${recipe.instructions}</p>
-        </li>
+          <button onclick="deleteFavorite(${recipe.favorite_id})" class="delete-btn">Remove from Favorites</button>
+        </div>
       `).join('');
     })
     .catch(error => {
       console.error('Error loading favorites:', error);
       document.getElementById('favoriteList').innerHTML = 
-        '<p class="error">Error loading favorites. Please try again.</p>';
+        `<p class="error">Error loading favorites: ${error.message}</p>`;
     });
 }
-
-// Load favorites when the page loads
-window.addEventListener('load', () => {
-  const currentUser = localStorage.getItem('currentUser');
-  if (currentUser) {
-    loadFavorites();
-  }
-});
 
 // === Save Journal ===
 function saveJournal() {
   const title = document.getElementById('journalTitle').value.trim();
   const content = document.getElementById('journalContent').value.trim();
+  const userId = localStorage.getItem('userId');
+
+  if (!userId) {
+    document.getElementById('journalEntries').innerHTML = '<p>Please log in to save journal entries</p>';
+    return;
+  }
 
   if (!title || !content) {
     alert('Please fill in both title and content');
     return;
   }
 
-  fetch('http://localhost:8000/backend/api/journal.php', {
+  fetch(`${JOURNAL_API}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content })
+      body: JSON.stringify({ 
+        title, 
+        content,
+        user_id: userId
+      })
   })
   .then(res => {
     if (!res.ok) {
@@ -382,16 +454,25 @@ function saveJournal() {
   })
   .catch(error => {
     console.error('Error saving journal entry:', error);
-    alert(error.message || 'An error occurred while saving the entry');
+    document.getElementById('journalEntries').innerHTML = 
+      `<p class="error">Error saving journal entry: ${error.message}</p>`;
   });
 }
 
 // === Load Journal Entries ===
 function loadJournalEntries() {
-  fetch('http://localhost:8000/backend/api/journal.php')
+  const userId = localStorage.getItem('userId');
+  if (!userId) {
+    document.getElementById('journalEntries').innerHTML = '<p>Please log in to view journal entries</p>';
+    return;
+  }
+
+  fetch(`${JOURNAL_API}?user_id=${userId}`)
     .then(res => {
       if (!res.ok) {
-        throw new Error('Failed to load journal entries');
+        return res.json().then(data => {
+          throw new Error(data.error || 'Failed to load journal entries');
+        });
       }
       return res.json();
     })
@@ -406,10 +487,16 @@ function loadJournalEntries() {
 
       entries.forEach(entry => {
         const li = document.createElement('li');
+        const date = entry.created_at ? new Date(entry.created_at).toLocaleString() : 'No date available';
         li.innerHTML = `
-          <strong>${entry.title}</strong>
-          <p>${entry.content}</p>
-          <small>Created: ${new Date(entry.created_at).toLocaleString()}</small>
+          <div class="journal-entry">
+            <strong>${entry.title}</strong>
+            <p>${entry.content}</p>
+            <small>Created: ${date}</small>
+            <button onclick="saveJournalToFavorites(${entry.id}, '${entry.title.replace(/'/g, "\\'")}', '${entry.content.replace(/'/g, "\\'")}')" class="favorite-btn">
+              Save to Favorites
+            </button>
+          </div>
         `;
         list.appendChild(li);
       });
@@ -417,8 +504,48 @@ function loadJournalEntries() {
     .catch(error => {
       console.error('Error loading journal entries:', error);
       document.getElementById('journalEntries').innerHTML = 
-        '<p class="error">Error loading journal entries. Please try again.</p>';
+        `<p class="error">Error loading journal entries: ${error.message}</p>`;
     });
+}
+
+// Add new function to save journal entry to favorites
+function saveJournalToFavorites(entryId, title, content) {
+  const userId = localStorage.getItem('userId');
+  if (!userId) {
+    alert('Please log in to save recipes to favorites');
+    return;
+  }
+
+  // Create a new recipe object
+  const recipeData = {
+    user_id: userId,
+    name: title,
+    ingredients: content,
+    instructions: content,
+    source: 'journal'
+  };
+
+  fetch(`${FAVORITES_API}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(recipeData)
+  })
+  .then(res => {
+    if (!res.ok) {
+      return res.json().then(data => {
+        throw new Error(data.error || 'Failed to save recipe');
+      });
+    }
+    return res.json();
+  })
+  .then(data => {
+    alert('Recipe saved to favorites!');
+    loadFavorites(); // Refresh the favorites list
+  })
+  .catch(error => {
+    console.error('Error saving recipe:', error);
+    alert('Error saving recipe: ' + error.message);
+  });
 }
 
 // Load journal entries when the page loads
@@ -443,3 +570,279 @@ function askAI() {
       document.getElementById('aiResponse').innerText = data.response || 'No response from AI';
   });
 }
+
+// Meal Plans
+function loadMealPlans() {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        showMessage('Please log in to view meal plans', 'error');
+        return;
+    }
+
+    fetch(`http://localhost:8000/api/meal_plans.php?action=get&user_id=${userId}`)
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to load meal plans');
+                });
+            }
+            return response.json();
+        })
+        .then(meals => {
+            const mealPlanContainer = document.getElementById('mealPlanContainer');
+            if (!mealPlanContainer) return;
+
+            // Clear existing meals
+            mealPlanContainer.innerHTML = '';
+
+            // Create day columns
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            days.forEach(day => {
+                const dayColumn = document.createElement('div');
+                dayColumn.className = 'day-column';
+                dayColumn.innerHTML = `<h3>${day}</h3>`;
+
+                // Create meal slots for each day
+                const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
+                mealTypes.forEach(mealType => {
+                    const mealSlot = document.createElement('div');
+                    mealSlot.className = 'meal-slot';
+                    mealSlot.innerHTML = `<h4>${mealType}</h4>`;
+                    dayColumn.appendChild(mealSlot);
+                });
+
+                mealPlanContainer.appendChild(dayColumn);
+            });
+
+            // Add meals to their respective slots
+            meals.forEach(meal => {
+                const dayColumn = Array.from(mealPlanContainer.querySelectorAll('.day-column'))
+                    .find(col => col.querySelector('h3').textContent === meal.day);
+                
+                if (dayColumn) {
+                    const mealSlot = Array.from(dayColumn.querySelectorAll('.meal-slot'))
+                        .find(slot => slot.querySelector('h4').textContent === meal.meal_type);
+                    
+                    if (mealSlot) {
+                        const mealElement = document.createElement('div');
+                        mealElement.className = 'meal-item';
+                        mealElement.innerHTML = `
+                            <h4>${meal.recipe_name}</h4>
+                            <button onclick="deleteMeal(${meal.id})" class="delete-btn">Delete</button>
+                        `;
+                        mealSlot.appendChild(mealElement);
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading meal plans:', error);
+            showMessage('Error loading meal plans: ' + error.message, 'error');
+        });
+}
+
+function addMealToPlan() {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        showMessage('Please log in to add meals to your plan', 'error');
+        return;
+    }
+
+    const recipeId = document.getElementById('recipeSelect').value;
+    const day = document.getElementById('daySelect').value;
+    const mealType = document.getElementById('mealTypeSelect').value;
+
+    if (!recipeId) {
+        showMessage('Please select a recipe', 'error');
+        return;
+    }
+
+    fetch(`http://localhost:8000/api/meal_plans.php?action=add`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            recipe_id: recipeId,
+            day: day,
+            meal_type: mealType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        showMessage('Meal added to plan successfully', 'success');
+        loadMealPlans(); // Reload the meal plans
+    })
+    .catch(error => {
+        console.error('Error adding meal to plan:', error);
+        showMessage('Error adding meal to plan: ' + error.message, 'error');
+    });
+}
+
+function deleteMeal(mealId) {
+    if (!confirm('Are you sure you want to delete this meal from your plan?')) {
+        return;
+    }
+
+    fetch(`http://localhost:8000/api/meal_plans.php?action=delete&id=${mealId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            showMessage('Meal removed from plan successfully', 'success');
+            loadMealPlans(); // Reload the meal plans after deleting
+        })
+        .catch(error => {
+            console.error('Error deleting meal:', error);
+            showMessage('Error deleting meal', 'error');
+        });
+}
+
+function showMessage(message, type) {
+    const messageDiv = document.getElementById('message');
+    if (messageDiv) {
+        messageDiv.textContent = message;
+        messageDiv.className = `message ${type}`;
+        messageDiv.style.display = 'block';
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+// Load all recipes for the dropdown
+function loadRecipes() {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        document.getElementById('recipeSelect').innerHTML = '<option value="">Please log in to view your recipes</option>';
+        return;
+    }
+
+    const select = document.getElementById('recipeSelect');
+    select.innerHTML = '<option value="">Pick a recipe from your favorites or journal...</option>';
+
+    // Fetch favorite recipes
+    fetch(`${FAVORITES_API}?user_id=${userId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load favorites');
+            }
+            return response.json();
+        })
+        .then(favorites => {
+            if (favorites && favorites.length > 0) {
+                const favGroup = document.createElement('optgroup');
+                favGroup.label = 'Favorite Recipes';
+                favorites.forEach(favorite => {
+                    const option = document.createElement('option');
+                    option.value = favorite.id;
+                    option.textContent = favorite.name;
+                    favGroup.appendChild(option);
+                });
+                select.appendChild(favGroup);
+            }
+
+            // Fetch journal entries
+            return fetch(`${JOURNAL_API}?user_id=${userId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load journal entries');
+                    }
+                    return response.json();
+                })
+                .then(journalEntries => {
+                    if (journalEntries && journalEntries.length > 0) {
+                        const journalGroup = document.createElement('optgroup');
+                        journalGroup.label = 'Journal Entries';
+                        journalEntries.forEach(entry => {
+                            const option = document.createElement('option');
+                            option.value = entry.id;
+                            option.textContent = entry.title;
+                            journalGroup.appendChild(option);
+                        });
+                        select.appendChild(journalGroup);
+                    }
+
+                    if ((!favorites || favorites.length === 0) && 
+                        (!journalEntries || journalEntries.length === 0)) {
+                        const option = document.createElement('option');
+                        option.disabled = true;
+                        option.textContent = 'No recipes found. Add some to your favorites or journal first.';
+                        select.appendChild(option);
+                    }
+                });
+        })
+        .catch(error => {
+            console.error('Error loading recipes:', error);
+            const option = document.createElement('option');
+            option.disabled = true;
+            option.textContent = 'Error loading recipes. Please try again later.';
+            select.appendChild(option);
+        });
+}
+
+// Load favorites when the page loads
+window.addEventListener('load', () => {
+  const currentUser = localStorage.getItem('currentUser');
+  if (currentUser) {
+    loadFavorites();
+  }
+});
+
+// Mobile Navigation
+document.addEventListener('DOMContentLoaded', function() {
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks = document.querySelector('.nav-links');
+    
+    if (hamburger) {
+        hamburger.addEventListener('click', function() {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('active');
+        });
+    }
+
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.navbar')) {
+            hamburger.classList.remove('active');
+            navLinks.classList.remove('active');
+        }
+    });
+
+    // Close mobile menu when clicking a link
+    const navItems = document.querySelectorAll('.nav-links a');
+    navItems.forEach(item => {
+        item.addEventListener('click', function() {
+            hamburger.classList.remove('active');
+            navLinks.classList.remove('active');
+        });
+    });
+});
+
+// Scroll Animation for Gallery
+function handleScrollAnimation() {
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    const triggerBottom = window.innerHeight * 0.8;
+
+    galleryItems.forEach(item => {
+        const itemTop = item.getBoundingClientRect().top;
+
+        if (itemTop < triggerBottom) {
+            item.classList.add('visible');
+        }
+    });
+}
+
+// Initialize scroll animation
+document.addEventListener('DOMContentLoaded', function() {
+    // Initial check for elements in view
+    handleScrollAnimation();
+
+    // Add scroll event listener
+    window.addEventListener('scroll', handleScrollAnimation);
+});

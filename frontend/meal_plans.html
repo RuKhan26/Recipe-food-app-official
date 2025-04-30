@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Plans - Recipe App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand">Bite Board</a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="favorites.html">My Favorites</a>
+            <a href="journal.html">Recipe Journal</a>
+            <a href="meal_plans.html" class="active">Meal Plans</a>
+        </div>
+    </nav>
+
+    <div id="loginStatus" class="login-status">
+        <span id="userDisplay"></span>
+        <button type="button" onclick="logout()" class="logout-button">Logout</button>
+    </div>
+
+    <div class="container">
+        <h1>My Meal Plan</h1>
+        <p class="subtitle">Plan your meals for the entire week! Choose from your favorite recipes or journal entries to create a balanced meal plan. Organize breakfast, lunch, and dinner for each day, and make your meal preparation stress-free and delicious.</p>
+        
+        <div class="meal-plan-container">
+            <h2>Meal Plan</h2>
+            <div class="add-meal-form">
+                <select id="recipeSelect">
+                    <option value="">Select a recipe...</option>
+                </select>
+                <select id="daySelect">
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+                <select id="mealTypeSelect">
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                </select>
+                <button onclick="addMealToPlan()">Add to Plan</button>
+            </div>
+            <div id="message" class="message" style="display: none;"></div>
+            <div id="mealPlanContainer" class="meal-plan-grid">
+                <!-- Meal slots will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Load recipes and meal plans when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRecipes();
+            loadMealPlans();
+        });
+    </script>
+</body>
+</html> 

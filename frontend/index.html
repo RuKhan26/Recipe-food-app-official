@@ -3,25 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Recipe Search App</title>
+  <title>Bite Board</title>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
   <!-- Navigation Bar -->
   <nav class="navbar">
-    <div class="nav-brand">Recipe Food App</div>
+    <a href="index.html" class="nav-brand">Bite Board</a>
+    <div class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
     <div class="nav-links">
       <a href="index.html" class="active">Home</a>
       <a href="favorites.html">My Favorites</a>
       <a href="journal.html">Recipe Journal</a>
+      <a href="meal_plans.html">Meal Plans</a>
     </div>
   </nav>
 
   <!-- Welcome Modal -->
   <div id="welcomeModal" class="modal">
     <div class="modal-content">
-      <h2>Welcome to Recipe Food App!</h2>
-      <p>Please choose an option to continue:</p>
+      <h2>Welcome to Bite Board!</h2>
+      <p>Your one-stop destination for cooks, chefs, beginners, and food enthusiasts! Discover, create, and share your culinary journey with our comprehensive recipe platform. Powered by an AI assistant to help you find the perfect recipe, our platform offers personalized meal planning, recipe journaling, and the ability to save your favorite recipes. Whether you're a seasoned chef or just starting your cooking adventure, we've got everything you need to make your culinary dreams come true.</p>
       <div class="modal-buttons">
         <button type="button" onclick="showLoginModal()">Login</button>
         <button type="button" onclick="showRegisterModal()">Register</button>
@@ -64,17 +70,44 @@
   </div>
 
   <div class="container">
-    <h1>Recipe Food App</h1>
+    <h1>Welcome to Bite Board</h1>
+    <p>Your one-stop destination for cooks, chefs, beginners, and food enthusiasts! Discover, create, and share your culinary journey with our comprehensive recipe platform. Powered by an AI assistant to help you find the perfect recipe, our platform offers personalized meal planning, recipe journaling, and the ability to save your favorite recipes. Whether you're a seasoned chef or just starting your cooking adventure, we've got everything you need to make your culinary dreams come true.</p>
 
-    <!-- Main content sections -->
-    <section id="search-section">
-      <h2>Find Recipes by Ingredients</h2>
-      <form id="search-form">
-        <input type="text" id="ingredients" placeholder="Enter ingredients (e.g., pasta, tomatoes)" required>
-        <button type="submit">Search Recipes</button>
-      </form>
-      <button id="surprise-me">Surprise Me!</button>
-    </section>
+    <div id="surprise-section" class="surprise-section">
+      <p>Click the Surprise Me button to instantly get a recipe suggestion!</p>
+      <button id="surprise-me" class="surprise-button">Surprise Me!</button>
+    </div>
+
+    <div class="image-gallery">
+      <div class="gallery-item">
+        <img src="images/famous-female-chefs.jpg.webp" alt="Professional chef cooking" class="gallery-img">
+        <div class="gallery-caption">Professional Chefs</div>
+      </div>
+      <div class="gallery-item">
+        <img src="images/home .webp" alt="Home cooking" class="gallery-img">
+        <div class="gallery-caption">Home Cooking</div>
+      </div>
+      <div class="gallery-item">
+        <img src="images/db9a4083-mg_4246-copy-e1484761744984-960x540.jpg" alt="Beautiful food presentation" class="gallery-img">
+        <div class="gallery-caption">Food Presentation</div>
+      </div>
+      <div class="gallery-item">
+        <img src="images/cooking-birthday-party-31.jpg.webp" alt="Cooking class" class="gallery-img">
+        <div class="gallery-caption">Cooking Classes</div>
+      </div>
+      <div class="gallery-item">
+        <img src="images/Guide_Michelin_trois_étoiles.jpg" alt="User reviews and ratings" class="gallery-img">
+        <div class="gallery-caption">Reviews & Ratings</div>
+      </div>
+      <div class="gallery-item">
+        <img src="images/istockphoto-1354214296-612x612.jpg" alt="Cooking community" class="gallery-img">
+        <div class="gallery-caption">Meet the Community</div>
+      </div>
+    </div>
+
+    <!-- Elfsight AI Chatbot | Untitled AI Chatbot -->
+    <script src="https://static.elfsight.com/platform/platform.js" async></script>
+    <div class="elfsight-app-5eca3097-763a-434a-826e-3957a555fcac" data-elfsight-app-lazy></div>
 
     <div id="loading-spinner" style="display: none;">
       <div class="spinner"></div>
