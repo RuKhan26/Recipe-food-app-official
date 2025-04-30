@@ -3,7 +3,7 @@
         'name' => 'user/recipe-food-app',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '6af4af3a5f8ae557db1706ac32b07d0b8e5d87b4',
+        'reference' => '869ea86fd417135e14dc42cb9f9ebeec94158473',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -382,7 +382,7 @@
         'user/recipe-food-app' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '6af4af3a5f8ae557db1706ac32b07d0b8e5d87b4',
+            'reference' => '869ea86fd417135e14dc42cb9f9ebeec94158473',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

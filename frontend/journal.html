@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recipe Journal - Recipe Food App</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-brand">Recipe Food App</div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="favorites.html">My Favorites</a>
+      <a href="journal.html" class="active">Recipe Journal</a>
+    </div>
+  </nav>
+
+  <div id="loginStatus" class="login-status">
+    <span id="userDisplay"></span>
+    <button type="button" onclick="logout()" class="logout-button">Logout</button>
+  </div>
+
+  <div class="container">
+    <h1>My Recipe Journal</h1>
+    
+    <div class="journal-container">
+      <div class="journal-form">
+        <input type="text" id="journalTitle" placeholder="Recipe Title" class="journal-input">
+        <textarea id="journalContent" placeholder="Write your recipe..." class="journal-textarea"></textarea>
+        <button type="button" onclick="saveJournal()" class="journal-button">Save Entry</button>
+      </div>
+      
+      <div class="journal-entries">
+        <h2>My Entries</h2>
+        <ul id="journalEntries"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html> 

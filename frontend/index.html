@@ -3,45 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Recipe Food App</title>
+  <title>Recipe Search App</title>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-brand">Recipe Food App</div>
+    <div class="nav-links">
+      <a href="index.html" class="active">Home</a>
+      <a href="favorites.html">My Favorites</a>
+      <a href="journal.html">Recipe Journal</a>
+    </div>
+  </nav>
+
+  <!-- Welcome Modal -->
+  <div id="welcomeModal" class="modal">
+    <div class="modal-content">
+      <h2>Welcome to Recipe Food App!</h2>
+      <p>Please choose an option to continue:</p>
+      <div class="modal-buttons">
+        <button type="button" onclick="showLoginModal()">Login</button>
+        <button type="button" onclick="showRegisterModal()">Register</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>Login</h2>
+      <div class="form-group">
+        <input type="text" id="loginUsername" placeholder="Username">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button type="button" onclick="login()">Login</button>
+        <button type="button" onclick="backToWelcome()" class="back-button">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="registerModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>Register</h2>
+      <div class="form-group">
+        <input type="text" id="registerUsername" placeholder="Username">
+        <small class="helper-text">Username must be 3-20 characters, letters, numbers, and underscores only</small>
+        <input type="password" id="registerPassword" placeholder="Password">
+        <small class="helper-text">Password must be at least 6 characters with uppercase, lowercase, and numbers</small>
+        <input type="password" id="confirmPassword" placeholder="Confirm Password">
+        <button type="button" onclick="register()">Register</button>
+        <button type="button" onclick="backToWelcome()" class="back-button">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loginStatus" class="login-status">
+    <span id="userDisplay"></span>
+    <button type="button" onclick="logout()" class="logout-button">Logout</button>
+  </div>
+
   <div class="container">
     <h1>Recipe Food App</h1>
 
-    <!-- Login/Register Section -->
-    <section id="login">
-      <h2>Login / Register</h2>
-      <input type="text" id="username" placeholder="Username">
-      <input type="password" id="password" placeholder="Password">
-      <button onclick="register()">Register</button>
-      <button onclick="login()">Login</button>
-    </section>
-
-    <!-- Recipe Search Section -->
-    <section id="search">
+    <!-- Main content sections -->
+    <section id="search-section">
       <h2>Find Recipes by Ingredients</h2>
-      <input type="text" id="ingredients" placeholder="e.g., tomato, pasta">
-      <button onclick="searchRecipes()">Search</button>
-      <ul id="recipeList"></ul>
+      <form id="search-form">
+        <input type="text" id="ingredients" placeholder="Enter ingredients (e.g., pasta, tomatoes)" required>
+        <button type="submit">Search Recipes</button>
+      </form>
+      <button id="surprise-me">Surprise Me!</button>
     </section>
 
-    <!-- Surprise Recipe Section -->
-    <section id="random">
-      <h2>Surprise Me!</h2>
-      <button onclick="randomRecipe()">Give Me a Random Recipe</button>
-      <div id="randomRecipeDisplay"></div>
-    </section>
+    <div id="loading-spinner" style="display: none;">
+      <div class="spinner"></div>
+      <p>Finding delicious recipes...</p>
+    </div>
 
-    <!-- Favorites Section -->
-    <section id="favorites">
-      <h2>My Favorite Recipes</h2>
-      <ul id="favoriteList"></ul>
-    </section>
-
-    <!-- Journal Section -->
-    <section id="journal">
-      <h2>My Recipe Journal</h2>
-      <input type="text" id="journalTitle" placeholder="Recipe Title">
-      <textarea id="journalContent" placeholder="Write your recipe...
+    <section id="recipe-results"></section>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
