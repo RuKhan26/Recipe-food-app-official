@@ -7,7 +7,7 @@ We decided to create a new website entirely and worked mostly on using our previ
 We mainly focus on trying to provide an AI feature for our website but keeping the Frontend and Backend structure but expanding to new features that test our knowledge with coding an API
 
 
-
+On our project we added feautres including an ai assitant that opens a pop up message bubble upon enterign the website. Any ingrdiesnts can be inputted to the ai assistant and it will return multiple recipes using those ingredints. THen we added a surprise me button that generates randome recipes instantly upon clicking it. There is a recipe jjounral where one can add their own recipes as well as a favorites section where you can save the recipes for returned access. Finally there is a meal plan section that has a weekly diagram where you cna add saved recipes or your own entries to any week day and for a specific meal slot as well.  
 
 
 **How to run this code using XAMPP on Windows:**
