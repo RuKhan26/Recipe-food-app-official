@@ -1,10 +1,10 @@
 <?php
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-require_once '../config/db.php';
+require_once '../config/database.php';
 require_once '../vendor/autoload.php';
 
 // Load environment variables from .env file
@@ -22,96 +22,84 @@ if (file_exists($envFile)) {
 
 use GuzzleHttp\Client;
 
-try {
-    $method = $_SERVER['REQUEST_METHOD'];
-    $action = $_GET['action'] ?? '';
+$action = $_GET['action'] ?? '';
+
+switch ($action) {
+    case 'ai_search':
+        aiSearch();
+        break;
+    case 'random':
+        getRandomRecipes();
+        break;
+    default:
+        echo json_encode(['error' => 'Invalid action']);
+        break;
+}
+
+function aiSearch() {
     $ingredients = $_GET['ingredients'] ?? '';
-
-    if ($method === 'OPTIONS') {
-        http_response_code(200);
-        exit();
+    
+    if (empty($ingredients)) {
+        echo json_encode(['error' => 'Ingredients are required']);
+        return;
     }
-
-    if ($action === 'ai_search') {
-        try {
-            if (empty($ingredients)) {
-                throw new Exception('Ingredients are required');
-            }
-
-            $client = new Client();
-            $response = $client->post('https://api.openai.com/v1/chat/completions', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $_ENV['OPENAI_API_KEY'],
-                    'Content-Type' => 'application/json',
-                ],
-                'json' => [
-                    'model' => 'gpt-3.5-turbo',
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => 'You are a helpful cooking assistant. Generate recipes in JSON format with name, ingredients, and instructions fields.'
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => "Generate 3 recipe suggestions using these ingredients: $ingredients. Return the response as a JSON array where each recipe is an object with 'name', 'ingredients' (as array), and 'instructions' (as array) fields."
-                        ]
+    
+    $api_key = getenv('OPENAI_API_KEY');
+    if (!$api_key) {
+        echo json_encode(['error' => 'OpenAI API key not configured']);
+        return;
+    }
+    
+    $client = new Client();
+    
+    try {
+        $response = $client->post('https://api.openai.com/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $api_key,
+                'Content-Type' => 'application/json',
+            ],
+            'json' => [
+                'model' => 'gpt-3.5-turbo',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are a helpful cooking assistant. Generate recipes based on the given ingredients. Return the response as a JSON array of recipes, where each recipe has a name, ingredients (array), and instructions (array).'
                     ],
-                    'temperature' => 0.7,
-                    'max_tokens' => 800,
-                    'response_format' => ['type' => 'json_object']
-                ]
-            ]);
-
-            $result = json_decode($response->getBody(), true);
-            
-            if (isset($result['choices'][0]['message']['content'])) {
-                $recipes = json_decode($result['choices'][0]['message']['content'], true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($recipes)) {
-                    http_response_code(200);
-                    echo json_encode($recipes);
-                } else {
-                    throw new Exception('Invalid response format from AI');
-                }
-            } else {
-                throw new Exception('No recipes found');
-            }
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Error finding recipes: ' . $e->getMessage()]);
-        }
-    } elseif ($method === 'GET' && $action === 'random') {
-        // Get a random recipe
-        $stmt = $pdo->query("SELECT * FROM recipes ORDER BY RAND() LIMIT 1");
-        $recipe = $stmt->fetch();
+                    [
+                        'role' => 'user',
+                        'content' => "Generate recipes using these ingredients: $ingredients"
+                    ]
+                ],
+                'temperature' => 0.7,
+                'max_tokens' => 1000
+            ]
+        ]);
         
-        if ($recipe) {
-            echo json_encode($recipe);
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'No recipes found in the database']);
-        }
-    } elseif ($method === 'GET' && !empty($ingredients)) {
-        $terms = explode(',', $ingredients);
-        $placeholders = implode('%', array_map('trim', $terms));
-        $stmt = $pdo->prepare("SELECT * FROM recipes WHERE ingredients LIKE ?");
-        $stmt->execute(["%$placeholders%"]);
-        $recipes = $stmt->fetchAll();
+        $result = json_decode($response->getBody(), true);
+        $recipes = json_decode($result['choices'][0]['message']['content'], true);
         
-        if (!empty($recipes)) {
-            echo json_encode($recipes);
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'No recipes found with those ingredients']);
+        if (!is_array($recipes)) {
+            throw new Exception('Invalid response format from AI');
         }
-    } else {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid request method or missing parameters']);
+        
+        echo json_encode($recipes);
+    } catch (Exception $e) {
+        echo json_encode(['error' => 'OpenAI API error: ' . $e->getMessage()]);
     }
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+}
+
+function getRandomRecipes() {
+    global $conn;
+    
+    $stmt = $conn->prepare("SELECT * FROM recipes ORDER BY RAND() LIMIT 10");
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $recipes = [];
+    while ($row = $result->fetch_assoc()) {
+        $recipes[] = $row;
+    }
+    
+    echo json_encode($recipes);
 }
 ?>
