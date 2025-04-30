@@ -17,11 +17,11 @@ try {
     $method = $_SERVER['REQUEST_METHOD'];
     $data = json_decode(file_get_contents("php://input"), true);
 
-    // Drop and recreate the meal_plans table to ensure proper structure
-    $db->exec("DROP TABLE IF EXISTS meal_plans");
-    $db->exec("CREATE TABLE meal_plans (
+    // Create the meal_plans table if it doesn't exist
+    $db->exec("CREATE TABLE IF NOT EXISTS meal_plans (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
+        recipe_id INT NOT NULL,
         recipe_name VARCHAR(255) NOT NULL,
         day VARCHAR(10) NOT NULL,
         meal_type VARCHAR(20) NOT NULL,
@@ -29,37 +29,50 @@ try {
     )");
 
     if ($method === 'POST') {
-        if (!isset($data['recipe_name']) || !isset($data['day']) || !isset($data['meal_type'])) {
-            throw new Exception('Recipe name, day, and meal type are required');
+        if (!isset($data['user_id']) || !isset($data['recipe_id']) || !isset($data['recipe_name']) || !isset($data['day']) || !isset($data['meal_type'])) {
+            throw new Exception('All fields are required');
         }
 
-        // Get the current user from the session or request
-        $user_id = $data['user_id'] ?? 1; // For now, using a default user_id
-
         // Insert the meal plan
-        $stmt = $db->prepare("INSERT INTO meal_plans (user_id, recipe_name, day, meal_type) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$user_id, $data['recipe_name'], $data['day'], $data['meal_type']]);
+        $stmt = $db->prepare("INSERT INTO meal_plans (user_id, recipe_id, recipe_name, day, meal_type) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $data['user_id'],
+            $data['recipe_id'],
+            $data['recipe_name'],
+            $data['day'],
+            $data['meal_type']
+        ]);
         
-        echo json_encode(['message' => 'Meal added to plan successfully']);
+        $mealId = $db->lastInsertId();
+        echo json_encode([
+            'message' => 'Meal added to plan successfully',
+            'id' => $mealId
+        ]);
     }
     elseif ($method === 'GET') {
-        // Get the current user from the session or request
-        $user_id = $_GET['user_id'] ?? 1; // For now, using a default user_id
+        if (!isset($_GET['user_id'])) {
+            throw new Exception('User ID is required');
+        }
 
         // Get all meal plans for the user
         $stmt = $db->prepare("SELECT * FROM meal_plans WHERE user_id = ? ORDER BY day, meal_type");
-        $stmt->execute([$user_id]);
+        $stmt->execute([$_GET['user_id']]);
         $meals = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         echo json_encode($meals);
     }
     elseif ($method === 'DELETE') {
-        if (!isset($_GET['id'])) {
-            throw new Exception('Meal plan ID is required');
+        if (!isset($_GET['id']) || !isset($_GET['user_id'])) {
+            throw new Exception('Meal plan ID and user ID are required');
         }
 
-        $stmt = $db->prepare("DELETE FROM meal_plans WHERE id = ?");
-        $stmt->execute([$_GET['id']]);
+        // Delete only if the meal belongs to the user
+        $stmt = $db->prepare("DELETE FROM meal_plans WHERE id = ? AND user_id = ?");
+        $stmt->execute([$_GET['id'], $_GET['user_id']]);
+        
+        if ($stmt->rowCount() === 0) {
+            throw new Exception('Meal plan not found or not authorized');
+        }
         
         echo json_encode(['message' => 'Meal removed from plan successfully']);
     }

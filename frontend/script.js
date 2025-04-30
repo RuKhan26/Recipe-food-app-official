@@ -417,7 +417,7 @@ async function removeFromFavorites(favoriteId) {
 // === Load Favorites ===
 async function loadFavorites() {
     try {
-        const userId = localStorage.getItem('currentUser');
+        const userId = localStorage.getItem('userId');
         if (!userId) {
             document.getElementById('favoriteList').innerHTML = '<p>Please log in to view your favorites</p>';
             return;
@@ -452,7 +452,7 @@ async function loadFavorites() {
 
 async function removeFavorite(favoriteId) {
     try {
-        const userId = localStorage.getItem('currentUser');
+        const userId = localStorage.getItem('userId');
         if (!userId) {
             alert('Please log in to remove favorites');
             return;
@@ -710,36 +710,38 @@ function loadMealPlans() {
 }
 
 // Add a meal to the plan
-function addMealToPlan() {
-    const recipeSelect = document.getElementById('recipeSelect');
-    const recipeId = recipeSelect.value;
-    const recipeName = recipeSelect.options[recipeSelect.selectedIndex].text;
-    const day = document.getElementById('daySelect').value;
-    const mealType = document.getElementById('mealTypeSelect').value;
-
-    if (!recipeId) {
-        alert('Please select a recipe');
-        return;
-    }
-
+function addMeal() {
     const userId = localStorage.getItem('userId');
     if (!userId) {
-        alert('Please log in to add meals to your plan');
+        showMessage('Please log in to add meals to your plan', 'error');
         return;
     }
+
+    const recipeSelect = document.getElementById('recipeSelect');
+    const daySelect = document.getElementById('daySelect');
+    const mealTypeSelect = document.getElementById('mealTypeSelect');
+
+    if (!recipeSelect.value || !daySelect.value || !mealTypeSelect.value) {
+        showMessage('Please select a recipe, day, and meal type', 'error');
+        return;
+    }
+
+    const recipeName = recipeSelect.options[recipeSelect.selectedIndex].text.replace(/^[📖⭐] /, '');
+
+    const mealData = {
+        user_id: userId,
+        recipe_id: recipeSelect.value,
+        recipe_name: recipeName,
+        day: daySelect.value.toLowerCase(),
+        meal_type: mealTypeSelect.value.toLowerCase()
+    };
 
     fetch(`${API_BASE_URL}/meal_plans.php`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-            user_id: userId,
-            recipe_id: recipeId,
-            recipe_name: recipeName,
-            day: day,
-            meal_type: mealType
-        })
+        body: JSON.stringify(mealData)
     })
     .then(response => {
         if (!response.ok) {
@@ -750,40 +752,12 @@ function addMealToPlan() {
         return response.json();
     })
     .then(data => {
-        // Clear the selection
-        recipeSelect.value = '';
-        
-        // Find the correct day column and meal slot
-        const dayColumn = document.getElementById(day);
-        if (dayColumn) {
-            const mealSlot = dayColumn.querySelector(`.meal-slot[data-meal="${mealType}"]`);
-            if (mealSlot) {
-                // Create the meal content
-                const mealContent = document.createElement('div');
-                mealContent.className = 'meal-content';
-                mealContent.innerHTML = `
-                    <div class="meal-item">
-                        <span>${recipeName}</span>
-                        <button class="delete-btn" onclick="deleteMeal(${data.id})">×</button>
-                    </div>
-                `;
-                
-                // Clear any existing meal content but keep the meal type label
-                const existingContent = mealSlot.querySelector('.meal-content');
-                if (existingContent) {
-                    existingContent.remove();
-                }
-                
-                // Add the new meal content
-                mealSlot.appendChild(mealContent);
-            }
-        }
-        
         showMessage('Meal added to plan successfully', 'success');
+        loadMealsForWeek();
     })
     .catch(error => {
-        console.error('Error adding meal to plan:', error);
-        showMessage('Error adding meal to plan: ' + error.message, 'error');
+        console.error('Error adding meal:', error);
+        showMessage(error.message || 'Failed to add meal to plan', 'error');
     });
 }
 
@@ -793,7 +767,13 @@ function deleteMeal(mealId) {
         return;
     }
 
-    fetch(`${API_BASE_URL}/meal_plans.php?action=delete&id=${mealId}`, {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        alert('Please log in to delete meals from your plan');
+        return;
+    }
+
+    fetch(`${API_BASE_URL}/meal_plans.php?id=${mealId}&user_id=${userId}`, {
         method: 'DELETE'
     })
     .then(response => {
@@ -977,4 +957,144 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add scroll event listener
     window.addEventListener('scroll', handleScrollAnimation);
+});
+
+let currentWeekStart = new Date();
+currentWeekStart.setHours(0, 0, 0, 0);
+currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
+
+function initializeCalendar() {
+    const calendarGrid = document.getElementById('calendarGrid');
+    calendarGrid.innerHTML = '';
+
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
+
+    days.forEach(day => {
+        const dayColumn = document.createElement('div');
+        dayColumn.className = 'day-column';
+
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'day-header';
+        dayHeader.textContent = day;
+        dayColumn.appendChild(dayHeader);
+
+        mealTypes.forEach(mealType => {
+            const mealSlot = document.createElement('div');
+            mealSlot.className = 'meal-slot';
+            mealSlot.id = `${day.toLowerCase()}-${mealType.toLowerCase()}`;
+
+            const mealHeader = document.createElement('h4');
+            mealHeader.textContent = mealType;
+            mealSlot.appendChild(mealHeader);
+
+            const emptySlot = document.createElement('div');
+            emptySlot.className = 'empty-slot';
+            emptySlot.textContent = 'No meal planned';
+            mealSlot.appendChild(emptySlot);
+
+            dayColumn.appendChild(mealSlot);
+        });
+
+        calendarGrid.appendChild(dayColumn);
+    });
+
+    loadMealsForWeek();
+}
+
+function loadMealsForWeek() {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        showMessage('Please log in to view your meal plan', 'error');
+        return;
+    }
+
+    const weekEnd = new Date(currentWeekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    fetch(`${API_BASE_URL}/meal_plans.php?user_id=${userId}&start_date=${currentWeekStart.toISOString()}&end_date=${weekEnd.toISOString()}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                data.meals.forEach(meal => {
+                    const mealSlot = document.getElementById(`${meal.day}-${meal.meal_type}`);
+                    if (mealSlot) {
+                        const emptySlot = mealSlot.querySelector('.empty-slot');
+                        if (emptySlot) {
+                            emptySlot.remove();
+                        }
+
+                        const mealContent = document.createElement('div');
+                        mealContent.className = 'meal-content';
+
+                        const mealItem = document.createElement('div');
+                        mealItem.className = 'meal-item';
+
+                        const recipeName = document.createElement('span');
+                        recipeName.textContent = meal.recipe_name;
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'delete-btn';
+                        deleteBtn.innerHTML = '&times;';
+                        deleteBtn.onclick = () => removeMealFromPlan(meal.id);
+
+                        mealItem.appendChild(recipeName);
+                        mealItem.appendChild(deleteBtn);
+                        mealContent.appendChild(mealItem);
+                        mealSlot.appendChild(mealContent);
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading meals:', error);
+            showMessage('Failed to load meal plan', 'error');
+        });
+}
+
+function removeMealFromPlan(mealId) {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        showMessage('Please log in to modify your meal plan', 'error');
+        return;
+    }
+
+    fetch(`${API_BASE_URL}/meal_plans.php`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            meal_id: mealId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('Meal removed from plan successfully', 'success');
+            loadMealsForWeek();
+        } else {
+            showMessage(data.message || 'Failed to remove meal from plan', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing meal:', error);
+        showMessage('Failed to remove meal from plan', 'error');
+    });
+}
+
+function previousWeek() {
+    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+    initializeCalendar();
+}
+
+function nextWeek() {
+    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    initializeCalendar();
+}
+
+// Initialize calendar when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    initializeCalendar();
 });

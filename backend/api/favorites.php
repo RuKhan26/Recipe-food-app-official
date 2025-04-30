@@ -16,20 +16,12 @@ $action = $_GET['action'] ?? '';
 
 try {
     $db = getDBConnection();
-    if (!$db) {
-        throw new Exception("Database connection failed");
-    }
-    
     $method = $_SERVER['REQUEST_METHOD'];
     $data = json_decode(file_get_contents("php://input"), true);
-    
+
     if ($method === 'POST') {
         if (!isset($data['recipe_id'])) {
             throw new Exception('Recipe ID is required');
-        }
-
-        if (!isset($data['user_id'])) {
-            throw new Exception('User ID is required');
         }
 
         // Create favorites table if it doesn't exist
@@ -42,8 +34,11 @@ try {
             FOREIGN KEY (recipe_id) REFERENCES recipes(id)
         )");
 
-        // Get the user_id from the request
-        $user_id = $data['user_id'];
+        // Get the current user from the session or request
+        $user_id = $data['user_id'] ?? null;
+        if (!$user_id) {
+            throw new Exception('User ID is required');
+        }
 
         // Check if recipe exists
         $stmt = $db->prepare("SELECT id FROM recipes WHERE id = ?");
@@ -67,12 +62,11 @@ try {
         echo json_encode(['message' => 'Recipe added to favorites']);
     }
     elseif ($method === 'GET') {
-        if (!isset($_GET['user_id'])) {
+        // Get the current user from the session or request
+        $user_id = $_GET['user_id'] ?? null;
+        if (!$user_id) {
             throw new Exception('User ID is required');
         }
-
-        // Get the user_id from the request
-        $user_id = $_GET['user_id'];
 
         // Get all favorite recipes for the user
         $stmt = $db->prepare("
@@ -91,12 +85,11 @@ try {
             throw new Exception('Favorite ID is required');
         }
 
-        if (!isset($data['user_id'])) {
+        // Get the current user from the session or request
+        $user_id = $data['user_id'] ?? null;
+        if (!$user_id) {
             throw new Exception('User ID is required');
         }
-
-        // Get the user_id from the request
-        $user_id = $data['user_id'];
 
         // Delete the favorite
         $stmt = $db->prepare("DELETE FROM favorites WHERE id = ? AND user_id = ?");
