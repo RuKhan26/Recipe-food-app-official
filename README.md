@@ -1,6 +1,6 @@
 Rue, Keith ,Shikar
 
-Welcome to our food website. If you get lost in any part of the instructions when referring to any files, please check the directory skeleton at the very bottom. Otherwise, please follow below with the correct OS.
+Welcome to our food website. Below will be steps to run our website
 All of this was equal work 50/50
 
 We decided to create a new website entirely and worked mostly on using our previous knowledge to create a new concept of a recipe website that would give users easier ideas when cooking or just let individuals save their recipes for the future.
@@ -81,42 +81,4 @@ This should let you now access our website in any web browser and test our websi
 
 
 
-Recipe-food-app-official-7/
-├── .git/
-├── vendor/
-├── frontend/
-│   ├── style.css
-│   ├── styles.css
-│   ├── script.js
-│   ├── journal.html
-│   ├── meal_plans.html
-│   ├── images/
-│   ├── index.html
-│   └── favorites.html
-├── backend/
-│   ├── vendor/
-│   ├── tests/
-│   ├── index.php
-│   ├── test_db.php
-│   ├── database/
-│   ├── config/
-│   │   ├── setup.sql
-│   │   ├── db.php
-│   │   ├── setup.php
-│   │   ├── database.sql
-│   │   └── database.php
-│   ├── api/
-│   │   ├── users.php
-│   │   ├── meal_plans.php
-│   │   ├── recipes.php
-│   │   ├── journal.php
-│   │   ├── favorites.php
-│   │   ├── google_search.php
-│   │   └── ai_assistant.php
-│   ├── composer.lock
-│   └── composer.json
-├── composer.lock
-├── composer.json
-├── database.sql
-├── README.md
-└── .gitattributes
+
