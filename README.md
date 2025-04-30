@@ -2,6 +2,7 @@ Rufaida, Keith ,Shikar
 
 Welcome to our food website. Below will be steps to run our website
 All of this was equal work 33/33/33
+Please you the last commit prior to the 10 am deadline to use for grading
 
 We decided to create a new website entirely and worked mostly on using our previous knowledge to create a new concept of a recipe website that would give users easier ideas when cooking or just let individuals save their recipes for the future.
 We mainly focus on trying to provide an AI feature for our website but keeping the Frontend and Backend structure but expanding to new features that test our knowledge with coding an API
@@ -60,7 +61,7 @@ function getDBConnection() {
 ?>
 5.) 6. Update JavaScript fetch() URLs
 In frontend/script.js, every API call must be absolute: fetch('http://localhost/RecipeApp/backend/api/users.php?action=register', { ... })
-fetch('http://localhost/RecipeApp/backend/api/recipes.php?ingredients=tomato')
+So change all the api_base_url to http://localhost/...
 
 6.) 7. Add CORS Headers to Every PHP API File
 At the top of users.php, recipes.php, etc., add: header('Content-Type: application/json');
@@ -73,9 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-7.) Run the frontend by going to your browser and going to http://localhost/RecipeApp/frontend/index.html
+7.) Run the frontend by going to your browser and going to http://localhost/recipe-food-app-official/frontend/index.html
 
-8.) Finally test all the functions of the project 
+8.) Log in and finally test all the functions of the project 
  
 
 **Using the terminal to run website:**
