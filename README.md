@@ -1,7 +1,7 @@
 Rufaida, Keith ,Shikar
 
 Welcome to our food website. Below will be steps to run our website
-All of this was equal work 50/50
+All of this was equal work 33/33/33
 
 We decided to create a new website entirely and worked mostly on using our previous knowledge to create a new concept of a recipe website that would give users easier ideas when cooking or just let individuals save their recipes for the future.
 We mainly focus on trying to provide an AI feature for our website but keeping the Frontend and Backend structure but expanding to new features that test our knowledge with coding an API
