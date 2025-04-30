@@ -1,4 +1,4 @@
-Rue, Keith ,Shikar
+Rufaida, Keith ,Shikar
 
 Welcome to our food website. Below will be steps to run our website
 All of this was equal work 50/50
@@ -42,10 +42,44 @@ P.S.: Some features will be buggy or not work due to some code not working.
 
 **Running Using MAC OS:**
 
+1.) Install Xampp and open from applications. Go to the manage sesrvers tab and start apache and mysql
+2.) Open your browser and go to:
+http://localhost/phpmyadmin and crate a new database called recipe_app. Go to the SQL tab and paste the table setup from the sql files in the project folder under the backednd/database
+3.) Then Put your entire project folder (e.g., recipe-food-app-official) into: /Applications/XAMPP/xamppfiles/htdocs/
+4.) 5. Edit the database.php Connection File
+In backend/config/database.php, use this: <?php
+function getDBConnection() {
+    $host = 'localhost';
+    $db = 'recipe_app';
+    $user = 'root';
+    $pass = ''; // Leave blank on XAMPP by default
 
+    $dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+    return new PDO($dsn, $user, $pass);
+}
+?>
+5.) 6. Update JavaScript fetch() URLs
+In frontend/script.js, every API call must be absolute: fetch('http://localhost/RecipeApp/backend/api/users.php?action=register', { ... })
+fetch('http://localhost/RecipeApp/backend/api/recipes.php?ingredients=tomato')
+
+6.) 7. Add CORS Headers to Every PHP API File
+At the top of users.php, recipes.php, etc., add: header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+7.) Run the frontend by going to your browser and going to http://localhost/RecipeApp/frontend/index.html
+
+8.) Finally test all the functions of the project 
+ 
 
 **Using the terminal to run website:**
-If none of the steps above work, please follow these step,s but please use this as a last resort.
+If none of the steps above work, please follow these steps to run the website locally wihtout xampp.
 
 1.) Download PHP and MYSQL from their websites, and please make sure that your terminal or OS system allows the path for both to be access. Please search up how to run php and mysql as this step is far different from using an easier 
 program like XAMPP.
@@ -73,6 +107,7 @@ PHP:
 
 3.) ,After in your terminal,l run php -S localhost:8000
 
+4.) Then open the http://localhost:8000 in your browser to see the project running locally.
 This should let you now access our website in any web browser and test our website like all the above steps of how to run our website
 
 
