@@ -2,7 +2,8 @@ Rufaida, Keith ,Shikar
 
 Welcome to our food website. Below will be steps to run our website
 All of this was equal work 33/33/33
-Please you the last commit prior to the 10 am deadline to use for grading
+
+Please you the last commit of code prior to the 10 am deadline to use for grading. Readme.md was updated after deadline after seeing written error and missing section on instructions. However all code for project was submitted prior to deadline. 
 
 We decided to create a new website entirely and worked mostly on using our previous knowledge to create a new concept of a recipe website that would give users easier ideas when cooking or just let individuals save their recipes for the future.
 We mainly focus on trying to provide an AI feature for our website but keeping the Frontend and Backend structure but expanding to new features that test our knowledge with coding an API
@@ -113,6 +114,13 @@ This should let you now access our website in any web browser and test our websi
 
 
 **Unit Test:** (ai assitance)
+Instructions
+To run unit tests on your PHP code using PHPUnit: 
+(1) Install PHPUnit via Composer by running composer require --dev phpunit/phpunit, and confirm the installation with ./vendor/bin/phpunit --version. 
+(2) Create a tests/ directory and write your test classes inside it, ensuring each class extends PHPUnit\Framework\TestCase and contains test methods. Our tests used for this project are listed in the test files. 
+(3) From your project root, run ./vendor/bin/phpunit tests to execute all test files in the tests/ directory. 
+(4) Review the terminal output to see which tests passed or failed.
+--For easier test execution, optionally create a phpunit.xml configuration file in the root directory to specify settings like the test folder and bootstrap file. Once the config file is in place, you can simply run ./vendor/bin/phpunit to execute tests without specifying the directory.
 
 After follwing the instructions, the tests were ran, however kept returning errors. With the help of ai, we were able to 
 recognize where the errors where taking place and ai made suggestions based on our code, on what errors to correct. The following screen shots show the conversation with ai, after running and analyzing our tests. 
