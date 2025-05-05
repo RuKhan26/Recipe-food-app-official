@@ -12,6 +12,25 @@ We mainly focus on trying to provide an AI feature for our website but keeping t
 On our project we added feautres including an ai assitant that opens a pop up message bubble upon enterign the website. Any ingrdiesnts can be inputted to the ai assistant and it will return multiple recipes using those ingredints. THen we added a surprise me button that generates randome recipes instantly upon clicking it. There is a recipe jjounral where one can add their own recipes as well as a favorites section where you can save the recipes for returned access. Finally there is a meal plan section that has a weekly diagram where you cna add saved recipes or your own entries to any week day and for a specific meal slot as well.  
 
 
+
+**How to run this code locally through terminal :**
+
+(Alternative method)
+ 
+To restart- make sure to end any and all local connections in the terminal:
+
+pkill -f "php -S"
+
+Then redirect to the main project file in the terminal and type the following and enter.
+
+ cd backend && php -S localhost:8000
+Enter 
+
+cd frontend && php -S localhost:8080
+Enter 
+Open the browser and go to http://localhost:8000 to see that backend is working and then finally go to http://localhost:8080 to get to the frontend of the website. 
+
+
 **How to run this code using XAMPP on Windows:**
 
 1.) Step one, if you haven't already,y start by downloading XAMPP until you get to the main interface of XAMPP to activate MYSQL and Apache.
@@ -112,21 +131,6 @@ PHP:
 4.) Then open the http://localhost:8000 in your browser to see the project running locally.
 This should let you now access our website in any web browser and test our website like all the above steps of how to run our website
 
-
-Alternative method: 
- 
-To restart- make sure to end any and all local connections in the terminal:
-
-pkill -f "php -S"
-
-Then redirect to the main project file in the terminal and type the following and enter.
-
- cd backend && php -S localhost:8000
-Enter 
-
-cd frontend && php -S localhost:8080
-Enter 
-Open the browser and go to http://localhost:8000 to see that backend is working and then finally go to http://localhost:8080 to get to the frontend of the website. 
 
 
 **Unit Test:** (ai assitance)
