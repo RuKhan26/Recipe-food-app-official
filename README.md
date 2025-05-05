@@ -113,6 +113,22 @@ PHP:
 This should let you now access our website in any web browser and test our website like all the above steps of how to run our website
 
 
+Alternative method: 
+ 
+To restart- make sure to end any and all local connections in the terminal:
+
+pkill -f "php -S"
+
+Then redirect to the main project file in the terminal and type the following and enter.
+
+ cd backend && php -S localhost:8000
+Enter 
+
+cd frontend && php -S localhost:8080
+Enter 
+Open the browser and go to http://localhost:8000 to see that backend is working and then finally go to http://localhost:8080 to get to the frontend of the website. 
+
+
 **Unit Test:** (ai assitance)
 Instructions
 To run unit tests on your PHP code using PHPUnit: 
